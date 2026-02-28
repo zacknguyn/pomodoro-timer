@@ -1,11 +1,11 @@
 import './App.css'
-import TodoList from './components/TodoList.jsx'
+import HomeScreen from './pages/HomeScreen'
 
 function App() {
 
   return (
     <>
-      <TodoList />
+      <HomeScreen />
     </>
   )
 
