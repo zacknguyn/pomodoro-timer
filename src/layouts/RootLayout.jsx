@@ -6,7 +6,7 @@ const RootLayout = () => {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="border border-border shadow-gray-300">
+      <SidebarInset className="border border-border shadow-sm shadow-gray-300">
         <main className="flex-1 overflow-hidden p-4">
           <Outlet />
         </main>
