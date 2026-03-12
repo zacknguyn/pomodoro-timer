@@ -1,17 +1,14 @@
-import SearchBar from "@/components/SearchBar"
+import SearchBar from "@/components/SearchBar";
+import TitleBar from "@/components/TitleBar";
+import { Button } from "@/components/ui/button";
+import { Bell } from "lucide-react";
 
 const PomodoroScreen = () => {
   return (
     <div>
-      <div className="p-4 flex border border-border rounded-lg shadow-gray-300 shadow-sm items-center justify-between">
-        <h1 className="font-semibold text-2xl text-gray-900">Pomodoro</h1>
-
-        <div>
-          <SearchBar />
-        </div>
-      </div>
+      <TitleBar title="Pomodoro" />
     </div>
-  )
-}
+  );
+};
 
-export default PomodoroScreen
+export default PomodoroScreen;

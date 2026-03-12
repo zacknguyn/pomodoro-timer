@@ -1,7 +1,11 @@
+import TitleBar from "@/components/TitleBar";
+
 const AboutScreen = () => {
   return (
-    <div>AboutScreen</div>
-  )
-}
+    <div>
+      <TitleBar title="About" />
+    </div>
+  );
+};
 
-export default AboutScreen
+export default AboutScreen;
