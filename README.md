@@ -64,16 +64,6 @@ npm install
 npm run dev
 ```
 
-### Backend
-
-```bash
-# Navigate to Spring Boot project
-cd backend
-
-# Run with Maven
-./mvnw spring-boot:run
-```
-
 ---
 
 ## Project Structure
