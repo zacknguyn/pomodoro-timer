@@ -1,0 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600;1,700&family=Figtree:wght@400;500;600;700&display=swap');
+
+:root {
+  --canvas: 98% 0.008 80;
+  --surface: 95% 0.008 80;
+  --surface-alt: 92% 0.01 80;
+  --text: 14% 0.01 80;
+  --text-muted: 34% 0.01 80;   /* WCAG AA: ~4.6:1 on canvas */
+  --primary: 62% 0.16 35;
+  --accent: 72% 0.11 150;
+  --github-green: 62% 0.18 145;
+
+  --font-display: 'Epilogue', sans-serif;
+  --font-body: 'Figtree', sans-serif;
+
+  --radius-pill: 9999px;
+  --radius-card: 28px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='dark'] {
+  --canvas: 11% 0.008 80;
+  --surface: 15% 0.008 80;
+  --surface-alt: 19% 0.01 80;
+  --text: 95% 0.008 80;
+  --text-muted: 68% 0.008 80;
+}
+
+body {
+  background-color: oklch(var(--canvas));
+  color: oklch(var(--text));
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .mc-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.mc-card {
+  background: oklch(var(--surface));
+  border-radius: var(--radius-card);
+  padding: 2rem;
+}
+
+.mc-hover-lift {
+  transition: transform 0.3s var(--ease-out-expo);
+}
+.mc-hover-lift:hover { transform: translateY(-2px); }
+
+.mc-body { font-family: var(--font-body); }
+
+.mc-label {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: oklch(var(--text-muted));
+}
+
+.mc-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid oklch(var(--text) / 0.06);
+}
+
+.mc-btn-primary {
+  background: oklch(var(--primary));
+  color: white;
+  font-family: var(--font-body);
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+.mc-btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 4px 12px oklch(var(--primary) / 0.18);
+}
+.mc-btn-primary:focus-visible {
+  outline: 2px solid oklch(var(--primary));
+  outline-offset: 3px;
+}
+.mc-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.mc-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease, opacity 0.2s ease;
+  border: none;
+  text-decoration: none;
+}
+.mc-pill:focus-visible {
+  outline: 2px solid oklch(var(--primary));
+  outline-offset: 3px;
+}
+
+.mc-input {
+  background: oklch(var(--surface));
+  border: 1.5px solid oklch(var(--text) / 0.08);
+  border-radius: var(--radius-pill);
+  padding: 0.875rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: oklch(var(--text));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+.mc-input:focus {
+  outline: none;
+  border-color: oklch(var(--primary) / 0.5);
+  box-shadow: 0 0 0 3px oklch(var(--primary) / 0.1);
+}
+.mc-input::placeholder { color: oklch(var(--text) / 0.28); }
+
+.mc-orbit {
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mc-satellite {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* gsap.set() sets initial state in JS — content visible if JS fails */
+.mc-stagger-item {}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-hover-lift:hover { transform: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .animate-bounce { animation: none !important; }
+}
+
+@keyframes orbit-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.18); opacity: 0; }
+}
+.mc-orbit-pulse {
+  animation: orbit-pulse 2s ease-in-out infinite;
+}
