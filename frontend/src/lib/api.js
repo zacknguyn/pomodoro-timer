@@ -16,8 +16,10 @@ const fetcher = async (url, options = {}) => {
     return;
   }
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'API Request failed');
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    const message = error.error || 'API Request failed';
+    window.dispatchEvent(new CustomEvent('api-error', { detail: message }));
+    throw new Error(message);
   }
   return response.json();
 };
@@ -36,8 +38,22 @@ export const authApi = {
 export const sessionApi = {
   create: (data) => fetcher('/sessions', { method: 'POST', body: JSON.stringify(data) }),
   list: () => fetcher('/sessions'),
+  byDate: (date) => fetcher(`/sessions?date=${date}`),
   stats: () => fetcher('/sessions/stats'),
   heatmap: () => fetcher('/sessions/heatmap'),
+};
+
+export const groupApi = {
+  list: (status) => fetcher(`/groups${status ? `?status=${status}` : ''}`),
+  get: (id) => fetcher(`/groups/${id}`),
+  create: (name, repoFullName) => fetcher('/groups', { method: 'POST', body: JSON.stringify({ name, repoFullName }) }),
+  setStatus: (id, status) => fetcher(`/groups/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  delete: (id) => fetcher(`/groups/${id}`, { method: 'DELETE' }),
+  leave: (id) => fetcher(`/groups/${id}/leave`, { method: 'DELETE' }),
+};
+
+export const usersApi = {
+  list: () => fetcher('/users'),
 };
 
 export const githubApi = {

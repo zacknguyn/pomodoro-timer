@@ -5,7 +5,7 @@ import { LayoutDashboard, Timer, Users, Settings, Info, LogOut, Github, Sun, Moo
 const navItems = [
   { icon: LayoutDashboard, label: 'Workspace', to: '/' },
   { icon: Timer, label: 'Focus', to: '/pomodoro' },
-  { icon: Users, label: 'Team', to: '/team' },
+  { icon: Users, label: 'Team', to: '/groups' },
   { icon: Settings, label: 'Settings', to: '/settings' },
   { icon: Info, label: 'Protocol', to: '/about' },
 ];

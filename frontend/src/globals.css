@@ -164,3 +164,8 @@ h1, h2, h3, .mc-display {
 .mc-orbit-pulse {
   animation: orbit-pulse 2s ease-in-out infinite;
 }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

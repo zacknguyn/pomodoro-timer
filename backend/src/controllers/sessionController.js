@@ -33,8 +33,11 @@ router.get('/heatmap', (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-  const sessions = sessionRepository.findByUserId(req.user.userId);
-  res.json(sessions);
+  const { date } = req.query;
+  if (date) {
+    return res.json(sessionRepository.findByDate(req.user.userId, date));
+  }
+  res.json(sessionRepository.findByUserId(req.user.userId));
 });
 
 export default router;

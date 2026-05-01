@@ -3,36 +3,32 @@ import { ArrowRight, Timer, Users, Github, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { sessionApi } from "@/lib/api";
+import { sessionApi, groupApi } from "@/lib/api";
 import AvatarOrbit from "@/components/AvatarOrbit";
 import StatusBadge from "@/components/StatusBadge";
 import SectionHeader from "@/components/SectionHeader";
 import EditorialCard from "@/components/EditorialCard";
 
+import Skeleton from "@/components/Skeleton";
+
 const Dashboard = () => {
   const containerRef = useRef(null);
-  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0 });
+  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0, currentStreak: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [orbitMembers, setOrbitMembers] = useState([]);
+  const [recentSessions, setRecentSessions] = useState([]);
 
   useEffect(() => {
-    sessionApi.stats().then(setStats).catch(() => {});
+    sessionApi.stats().then(s => { setStats(s); setStatsLoading(false); }).catch(() => setStatsLoading(false));
+    sessionApi.list().then(s => setRecentSessions(s.slice(0, 5))).catch(() => {});
+    groupApi.list('active').then(groups => {
+      if (groups.length > 0) groupApi.get(groups[0].id).then(g => setOrbitMembers(g.members || [])).catch(() => {});
+    }).catch(() => {});
   }, []);
 
   const focusHours = Math.floor(stats.totalFocusMinutes / 60);
   const focusMinutes = stats.totalFocusMinutes % 60;
   const focusLabel = focusHours > 0 ? `${focusHours}h ${focusMinutes}m` : `${focusMinutes}m`;
-
-  const teamMembers = [
-    { name: "Alex", avatar: "https://i.pravatar.cc/150?u=alex", status: "Focusing" },
-    { name: "Jordan", avatar: "https://i.pravatar.cc/150?u=jordan", status: "Break" },
-    { name: "Taylor", avatar: "https://i.pravatar.cc/150?u=taylor", status: "Focusing" },
-    { name: "Casey", avatar: "https://i.pravatar.cc/150?u=casey", status: "Idle" },
-  ];
-
-  const sessions = [
-    { protocol: "SESS_042", target: "pomodoro-timer", time: "25:00", status: "SUCCESS" },
-    { protocol: "COMM_128", target: "registry-sync", time: "00:12", status: "SUCCESS" },
-    { protocol: "SESS_041", target: "internal-cli", time: "25:00", status: "INTERRUPT" },
-  ];
 
   useGSAP(() => {
     gsap.set(".stagger-item", { opacity: 0, y: 16 });
@@ -77,10 +73,10 @@ const Dashboard = () => {
             {React.createElement(Clock, { className: "w-3.5 h-3.5", style: { color: "oklch(var(--primary))" } })}
             <span className="mc-label">Total Focus Time</span>
           </div>
-          <p className="mc-display leading-none tracking-tighter"
+          <div className="mc-display leading-none tracking-tighter"
             style={{ fontSize: "clamp(3.5rem, 8vw, 6rem)", color: "oklch(var(--text))" }}>
-            {stats.totalFocusSeconds > 0 ? focusLabel : "—"}
-          </p>
+            {statsLoading ? <Skeleton style={{ width: "8rem", height: "5rem" }} /> : stats.totalFocusMinutes > 0 ? focusLabel : "—"}
+          </div>
           <p className="mc-body text-sm mt-3" style={{ color: "oklch(var(--text) / 0.4)" }}>
             across {stats.totalSessions} pomodoro {stats.totalSessions === 1 ? "cycle" : "cycles"}
           </p>
@@ -90,13 +86,15 @@ const Dashboard = () => {
           style={{ "--tw-divide-opacity": 1, borderColor: "oklch(var(--text) / 0.06)" }}>
           <div className="py-5">
             <p className="mc-label mb-1">Sessions</p>
-            <p className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
-              {stats.totalSessions > 0 ? stats.totalSessions : "—"}
-            </p>
+            <div className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
+              {statsLoading ? <Skeleton style={{ width: "3rem", height: "2rem" }} /> : stats.totalSessions > 0 ? stats.totalSessions : "—"}
+            </div>
           </div>
           <div className="py-5">
             <p className="mc-label mb-1">Streak</p>
-            <p className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>—</p>
+            <div className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
+              {statsLoading ? <Skeleton style={{ width: "3rem", height: "2rem" }} /> : stats.currentStreak > 0 ? `${stats.currentStreak}d` : "—"}
+            </div>
           </div>
         </div>
 
@@ -106,22 +104,28 @@ const Dashboard = () => {
             title={<h3 className="mc-display text-xl">In Orbit</h3>}
             right={React.createElement(Users, { className: "w-4 h-4", style: { color: "oklch(var(--text) / 0.2)" } })}
           />
-          <div className="flex flex-wrap gap-8 pt-2">
-            {teamMembers.map((member, i) => (
-              <div key={i} className="relative group cursor-pointer">
-                <AvatarOrbit
-                  src={member.avatar}
-                  alt={member.name}
-                  active={member.status === "Focusing"}
-                  className="group-hover:scale-110"
-                />
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none"
-                  style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
-                  {member.name}
+          {orbitMembers.length === 0 ? (
+            <p className="mc-body text-sm italic pb-4" style={{ color: "oklch(var(--text-muted))" }}>
+              Create or join a group to see your team here.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-8 pt-2">
+              {orbitMembers.map((m) => (
+                <div key={m.id} className="relative group cursor-pointer">
+                  <AvatarOrbit
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}&backgroundColor=141413&textColor=f3f0ee`}
+                    alt={m.name}
+                    active={m.isActive}
+                    className="group-hover:scale-110"
+                  />
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none"
+                    style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
+                    {m.name}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
@@ -169,7 +173,17 @@ const Dashboard = () => {
             }
           />
           <div className="space-y-6">
-            {sessions.map((s, i) => <RegistryAnchor key={i} {...s} />)}
+            {recentSessions.length === 0 ? (
+              <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text) / 0.4)" }}>No sessions yet. Start your first focus cycle.</p>
+            ) : recentSessions.map((s) => (
+              <RegistryAnchor key={s.id}
+                target={s.repo_name || 'Focus session'}
+                protocol={`${s.duration}m`}
+                time={new Date(s.completed_at.endsWith('Z') ? s.completed_at : s.completed_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                status="SUCCESS"
+                intent={s.intent}
+              />
+            ))}
           </div>
         </section>
       </div>
@@ -177,7 +191,7 @@ const Dashboard = () => {
   );
 };
 
-const RegistryAnchor = React.memo(({ protocol, target, time, status }) => (
+const RegistryAnchor = React.memo(({ protocol, target, time, status, intent }) => (
   <div className="flex items-center justify-between group transition-all hover:translate-x-1.5 rounded-xl relative pl-3"
     style={{ borderLeft: "2px solid transparent", transition: "transform 0.2s ease, border-color 0.2s ease" }}
     onMouseEnter={e => e.currentTarget.style.borderLeftColor = "oklch(var(--primary) / 0.5)"}
@@ -190,6 +204,7 @@ const RegistryAnchor = React.memo(({ protocol, target, time, status }) => (
           <span>{protocol}</span>
           <span className="w-1 h-1 rounded-full" style={{ background: "oklch(var(--text) / 0.1)" }} />
           <span>{time}</span>
+          {intent && <><span className="w-1 h-1 rounded-full" style={{ background: "oklch(var(--text) / 0.1)" }} /><span className="italic truncate max-w-[160px]">{intent}</span></>}
         </div>
       </div>
     </div>

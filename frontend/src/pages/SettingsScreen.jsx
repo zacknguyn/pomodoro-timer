@@ -97,9 +97,18 @@ const FocusSettings = () => {
   });
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    settingsApi.get().then(s => {
+      const merged = { pomodoro: s.pomodoro, shortBreak: s.short_break, longBreak: s.long_break };
+      setSettings(merged);
+      localStorage.setItem("kernel_settings", JSON.stringify(merged));
+    }).catch(() => {});
+  }, []);
+
   const handleUpdate = (key, val) => setSettings(prev => ({ ...prev, [key]: parseInt(val) || 1 }));
   const commitChanges = () => {
     localStorage.setItem("kernel_settings", JSON.stringify(settings));
+    settingsApi.update(settings).catch(() => {});
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

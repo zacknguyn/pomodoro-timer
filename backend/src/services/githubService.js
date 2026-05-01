@@ -99,7 +99,7 @@ export class GithubService {
 
       return days.map(d => {
         const c = d.contributionCount;
-        return { date: d.date, level: c >= 10 ? 3 : c >= 4 ? 2 : c >= 1 ? 1 : 0 };
+        return { date: d.date, level: c >= 10 ? 3 : c >= 4 ? 2 : c >= 1 ? 1 : 0, count: c };
       });
     } catch (error) {
       throw new Error(`GitHub GraphQL Error: ${error.message}`);

@@ -5,6 +5,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { sessionApi, githubApi } from "@/lib/api";
+import Skeleton from "@/components/Skeleton";
 
 const badges = ["Deep Work", "Registry Core", "Efficiency Pro", "Early Bird"];
 
@@ -45,7 +46,8 @@ const ProfileScreen = () => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [pomogitData, setPomogitData] = useState(Array(364).fill(0));
   const [githubData, setGithubData] = useState([]); // [{date, level}]
-  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0 });
+  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0, currentStreak: 0, longestStreak: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
   const containerRef = useRef(null);
   const closeDrawer = useCallback(() => setSelectedEntry(null), []);
   const drawerRef = useFocusTrap(!!selectedEntry, closeDrawer);
@@ -56,27 +58,34 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     sessionApi.heatmap().then(setPomogitData).catch(() => {});
-    sessionApi.stats().then(setStats).catch(() => {});
+    sessionApi.stats().then(s => { setStats(s); setStatsLoading(false); }).catch(() => setStatsLoading(false));
     githubApi.heatmap().then(setGithubData).catch(() => {});
   }, []);
 
   const currentData = trendMode === "github"
     ? githubData.map(d => d.level ?? 0)
-    : pomogitData;
+    : pomogitData.map(d => d.level ?? 0);
+
+  const currentCounts = trendMode === "github"
+    ? githubData.map(d => d.count ?? 0)
+    : pomogitData.map(d => d.count ?? 0);
+
+  const currentDates = trendMode === "github"
+    ? githubData.map(d => d.date)
+    : pomogitData.map(d => d.date);
 
   const focusHours = Math.floor(stats.totalFocusMinutes / 60);
   const focusMinutes = stats.totalFocusMinutes % 60;
   const focusLabel = focusHours > 0 ? `${focusHours}h ${focusMinutes}m` : `${focusMinutes}m`;
 
   const [drawerCommits, setDrawerCommits] = useState([]);
+  const [drawerSessions, setDrawerSessions] = useState([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
   const handleCellClick = (val, index) => {
     let isoDate, displayDate;
-
-    if (trendMode === 'github' && githubData[index]?.date) {
-      isoDate = githubData[index].date;
-      // Add noon to avoid timezone shifting the date
+    if (currentDates[index]) {
+      isoDate = currentDates[index];
       displayDate = new Date(isoDate + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     } else {
       const d = new Date();
@@ -85,15 +94,21 @@ const ProfileScreen = () => {
       displayDate = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     }
 
-    setSelectedEntry({ val, date: displayDate, isoDate });
+    setSelectedEntry({ val, date: displayDate, isoDate, count: currentCounts[index] ?? val });
     setDrawerCommits([]);
+    setDrawerSessions([]);
 
-    if (trendMode === 'github' && val > 0) {
+    if (val > 0) {
       setDrawerLoading(true);
-      githubApi.searchCommits(isoDate)
-        .then(setDrawerCommits)
-        .catch(() => {})
-        .finally(() => setDrawerLoading(false));
+      if (trendMode === 'github') {
+        githubApi.searchCommits(isoDate)
+          .then(setDrawerCommits).catch(() => {})
+          .finally(() => setDrawerLoading(false));
+      } else {
+        sessionApi.byDate(isoDate)
+          .then(setDrawerSessions).catch(() => {})
+          .finally(() => setDrawerLoading(false));
+      }
     }
   };
 
@@ -154,22 +169,24 @@ const ProfileScreen = () => {
                 {React.createElement(Clock, { className: "w-3.5 h-3.5", style: { color: "oklch(var(--accent))" } })}
                 <span className="mc-label">Total Focus</span>
               </div>
-              <p className="mc-display leading-none tracking-tighter" style={{ fontSize: "clamp(3rem, 7vw, 5rem)", color: "oklch(var(--text))" }}>
-                {stats.totalFocusMinutes > 0 ? focusLabel : "—"}
-              </p>
+              <div className="mc-display leading-none tracking-tighter" style={{ fontSize: "clamp(3rem, 7vw, 5rem)", color: "oklch(var(--text))" }}>
+                {statsLoading ? <Skeleton style={{ width: "8rem", height: "4rem" }} /> : stats.totalFocusMinutes > 0 ? focusLabel : "—"}
+              </div>
             </div>
           </div>
           {/* Three compact stats */}
           <div className="lg:col-span-7 grid grid-cols-3 pt-6 lg:pt-0 lg:pl-8 divide-x"
             style={{ borderTop: "1px solid oklch(var(--text) / 0.06)", "--tw-divide-opacity": 1 }}>
             {[
-              { label: "Sessions", value: stats.totalSessions > 0 ? stats.totalSessions : "—" },
-              { label: "Awards", value: "12" },
-              { label: "Sprint Rank", value: "#01" },
+              { label: "Sessions", value: statsLoading ? null : stats.totalSessions > 0 ? stats.totalSessions : "—" },
+              { label: "Streak", value: statsLoading ? null : stats.currentStreak > 0 ? `${stats.currentStreak}d` : "—" },
+              { label: "Best", value: statsLoading ? null : stats.longestStreak > 0 ? `${stats.longestStreak}d` : "—" },
             ].map(({ label, value }) => (
               <div key={label} className="flex flex-col justify-center px-6 gap-1">
                 <p className="mc-label">{label}</p>
-                <p className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>{value}</p>
+                <div className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
+                  {value === null ? <Skeleton style={{ width: "3rem", height: "2rem" }} /> : value}
+                </div>
               </div>
             ))}
           </div>
@@ -198,7 +215,8 @@ const ProfileScreen = () => {
         <MagneticHeatmap
           key={trendMode + currentData.length}
           data={currentData}
-          dates={trendMode === 'github' ? githubData.map(d => d.date) : null}
+          counts={currentCounts}
+          dates={currentDates}
           onCellClick={handleCellClick}
           trendMode={trendMode}
         />
@@ -246,8 +264,7 @@ const ProfileScreen = () => {
                         No transmissions recorded.
                       </p>
                     </div>
-                  ) : trendMode === 'github' ? drawerCommits.map((c) => (
-                    <a key={c.sha} href={c.url} target="_blank" rel="noreferrer"
+                  ) : trendMode === 'github' ? drawerCommits.map((c) => (                    <a key={c.sha} href={c.url} target="_blank" rel="noreferrer"
                       className="flex items-start gap-4 p-5 rounded-2xl border transition-all group hover:border-[oklch(var(--primary)/0.2)] block"
                       style={{ background: "oklch(var(--text) / 0.02)", borderColor: "oklch(var(--text) / 0.05)" }}>
                       <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -261,18 +278,26 @@ const ProfileScreen = () => {
                           <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
                           <span>{c.sha}</span>
                           <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
-                          <span>{new Date(c.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>{new Date(c.date.endsWith('Z') ? c.date : c.date + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     </a>
-                  )) : (
-                    <div className="py-20 text-center border-2 border-dashed rounded-[32px]"
-                      style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
-                      <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text-muted))" }}>
-                        Switch to GitHub mode to view commits.
-                      </p>
+                  )) : drawerSessions.map((s) => (
+                    <div key={s.id} className="p-5 rounded-2xl border space-y-2"
+                      style={{ background: "oklch(var(--text) / 0.02)", borderColor: "oklch(var(--text) / 0.05)" }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {React.createElement(Timer, { className: "w-4 h-4", style: { color: "oklch(var(--accent))" } })}
+                          <span className="mc-body text-sm font-bold" style={{ color: "oklch(var(--text))" }}>
+                            {s.duration}m focus
+                          </span>
+                        </div>
+                        <span className="mc-label">{new Date(s.completed_at.endsWith('Z') ? s.completed_at : s.completed_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      {s.intent && <p className="mc-body text-sm pl-7" style={{ color: "oklch(var(--text-muted))" }}>{s.intent}</p>}
+                      {s.repo_name && <p className="mc-label pl-7" style={{ color: "oklch(var(--primary) / 0.8)" }}>{s.repo_name}</p>}
                     </div>
-                  )}
+                  ))}
                 </div>
               </Motion.div>
             </>
@@ -309,7 +334,7 @@ const RADIUS = 80;
 
 // Mobile: last 26 weeks (6 months), tap to reveal tooltip
 // Desktop: full 52 weeks, magnetic hover
-const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
+const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
   const gridRef = useRef(null);
   const rafRef = useRef(null);
   const mouseRef = useRef({ x: -999, y: -999 });
@@ -359,14 +384,15 @@ const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
     if (cell) {
       const idx = parseInt(cell.dataset.cell, 10);
       const val = data[idx];
+      const displayCount = counts?.[idx] ?? val;
       const dateStr = dates?.[idx]
         ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
         : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
-      setTooltip({ val, x: e.clientX, y: e.clientY, date: dateStr });
+      setTooltip({ val: displayCount, x: e.clientX, y: e.clientY, date: dateStr });
     } else {
       setTooltip(null);
     }
-  }, [updateCells, data, dates]);
+  }, [updateCells, data, dates, counts]);
 
   const handleMouseLeave = useCallback(() => {
     if (IS_TOUCH) return;
@@ -378,22 +404,59 @@ const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
 
   // Touch: tap cell to show/dismiss tooltip
   const handleTouchCell = useCallback((val, idx) => {
+    const displayCount = counts?.[idx] ?? val;
     const dateStr = dates?.[idx]
       ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
       : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
-    setTooltip(prev => prev?.idx === idx ? null : { val, idx, date: dateStr, touch: true });
-  }, [dates]);
+    setTooltip(prev => prev?.idx === idx ? null : { val: displayCount, idx, date: dateStr, touch: true });
+  }, [dates, counts]);
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
+  // Build month labels from dates
+  const monthLabels = useMemo(() => {
+    const labels = [];
+    let lastMonth = -1;
+    for (let i = 0; i < data.length; i++) {
+      const col = Math.floor(i / 7);
+      const dateStr = dates?.[i];
+      if (!dateStr) continue;
+      const month = new Date(dateStr + 'T12:00:00').getMonth();
+      if (month !== lastMonth) {
+        labels.push({ col, label: new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { month: 'short' }) });
+        lastMonth = month;
+      }
+    }
+    return labels;
+  }, [data, dates]);
+
   return (
     <>
-      {/* Desktop: full 52-week magnetic grid — overflow visible so scaled cells don't clip */}
+      {/* Desktop: full 52-week magnetic grid */}
       <div className="hidden sm:block" style={{ overflow: "visible" }}>
-        <div ref={gridRef}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          style={{ display: "grid", gridTemplateColumns: "repeat(52, minmax(0, 1fr))", gap: "3px", minHeight: "5rem", overflow: "visible" }}>
+        {/* Month labels */}
+        <div style={{ display: "grid", gridTemplateColumns: "24px 1fr", marginBottom: "4px" }}>
+          <div />
+          <div style={{ display: "grid", gridTemplateRows: "12px", gridAutoFlow: "column", gridAutoColumns: "12px", gap: "3px", position: "relative", height: "14px" }}>
+            {monthLabels.map(({ col, label }) => (
+              <span key={label + col} className="mc-label absolute" style={{ left: `${col * 15}px`, fontSize: "9px", color: "oklch(var(--text-muted))", whiteSpace: "nowrap" }}>
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+        {/* Grid with day labels */}
+        <div style={{ display: "grid", gridTemplateColumns: "24px 1fr", gap: "0" }}>
+          {/* Day labels */}
+          <div style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gap: "3px" }}>
+            {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (
+              <span key={i} className="mc-label flex items-center justify-end pr-1" style={{ fontSize: "9px", color: "oklch(var(--text-muted))", height: "12px" }}>{d}</span>
+            ))}
+          </div>
+          <div ref={gridRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gridAutoFlow: "column", gridAutoColumns: "12px", gap: "3px", overflow: "visible" }}>
           {data.map((val, i) => (
             <div key={i} data-cell={i}
               onClick={() => onCellClick(val, i)}
@@ -406,6 +469,7 @@ const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
               }}
             />
           ))}
+          </div>
         </div>
       </div>
       {/* Tooltip via portal — fixed viewport coords, never clipped by card */}
@@ -429,7 +493,7 @@ const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
       <div className="sm:hidden space-y-3">
         <p className="mc-label">Last 6 months — tap a cell for details</p>
         <div className="relative"
-          style={{ display: "grid", gridTemplateColumns: "repeat(26, minmax(0, 1fr))", gap: "3px" }}>
+          style={{ display: "grid", gridTemplateRows: "repeat(7, 10px)", gridAutoFlow: "column", gridAutoColumns: "10px", gap: "3px" }}>
           {mobileData.map((val, i) => {
             const globalIdx = mobileOffset + i;
             return (

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { authApi } from '@/lib/api';
+import { authApi, settingsApi } from '@/lib/api';
 
 const LoginScreen = () => {
   const container = useRef();
@@ -22,6 +22,11 @@ const LoginScreen = () => {
       localStorage.setItem('registry_token', token);
       localStorage.setItem('registry_user', JSON.stringify(user));
       localStorage.removeItem('github_token');
+      // Sync timer settings from backend
+      try {
+        const s = await settingsApi.get();
+        if (s) localStorage.setItem('kernel_settings', JSON.stringify({ pomodoro: s.pomodoro, shortBreak: s.shortBreak, longBreak: s.longBreak }));
+      } catch { /* settings sync optional */ }
       navigate('/');
     } catch (err) {
       setError(err.message);

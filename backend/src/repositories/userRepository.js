@@ -2,6 +2,10 @@ import db from '../lib/db.js';
 import { randomUUID } from 'node:crypto';
 
 export class UserRepository {
+  findAll() {
+    return db.prepare('SELECT id, email FROM users ORDER BY email').all();
+  }
+
   findById(id) {
     const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
     return stmt.get(id);

@@ -13,6 +13,8 @@ const LoginScreen = lazy(() => import("./pages/LoginScreen"));
 const RegisterScreen = lazy(() => import("./pages/RegisterScreen"));
 const ProfileScreen = lazy(() => import("./pages/ProfileScreen"));
 const GitHubCallbackScreen = lazy(() => import("./pages/GitHubCallbackScreen"));
+const GroupsScreen = lazy(() => import("./pages/GroupsScreen"));
+const GroupDetailScreen = lazy(() => import("./pages/GroupDetailScreen"));
 
 const router = createBrowserRouter([
   { path: '/login', element: <Suspense fallback={<Loading />}><LoginScreen /></Suspense> },
@@ -27,6 +29,8 @@ const router = createBrowserRouter([
       { path: 'about', element: <Suspense fallback={<Loading />}><AboutScreen /></Suspense> },
       { path: 'pomodoro', element: <Suspense fallback={<Loading />}><PomodoroScreen /></Suspense> },
       { path: 'team', element: <Suspense fallback={<Loading />}><TeamScreen /></Suspense> },
+      { path: 'groups', element: <Suspense fallback={<Loading />}><GroupsScreen /></Suspense> },
+      { path: 'groups/:id', element: <Suspense fallback={<Loading />}><GroupDetailScreen /></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loading />}><SettingsScreen /></Suspense> },
       { path: 'profile', element: <Suspense fallback={<Loading />}><ProfileScreen /></Suspense> },
     ],

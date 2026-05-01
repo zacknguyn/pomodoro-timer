@@ -71,16 +71,26 @@ const PomodoroScreen = () => {
   const [timeLeft, setTimeLeft] = useState(settings.pomodoro * 60);
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
-  const [focusIntent, setFocusIntent] = useState("Researching editorial typography");
+  const [focusIntent, setFocusIntent] = useState("");
 
-  const handleTimerComplete = useCallback(() => {
+  useEffect(() => {
+    sessionApi.list().then(sessions => {
+      const last = sessions.find(s => s.intent);
+      if (last?.intent) setFocusIntent(last.intent);
+    }).catch(() => {});
+  }, []);
+
+  const handleTimerComplete = useCallback((elapsedMinutes) => {
     if (mode === "pomodoro") {
-      sessionApi.create({
-        mode: "pomodoro",
-        duration: settings.pomodoro,
-        intent: focusIntent,
-        repoName: selectedRepo?.full_name
-      }).catch(console.error);
+      const duration = elapsedMinutes ?? settings.pomodoro;
+      if (duration > 0) {
+        sessionApi.create({
+          mode: "pomodoro",
+          duration,
+          intent: focusIntent,
+          repoName: selectedRepo?.full_name
+        }).catch(console.error);
+      }
       setSessionsCompleted(prev => prev + 1);
       setMode("shortBreak");
       setTimeLeft(settings.shortBreak * 60);
@@ -200,7 +210,7 @@ const PomodoroScreen = () => {
                   : React.createElement(Play, { className: "w-7 h-7 fill-current ml-0.5" })}
               </button>
 
-              <button onClick={handleTimerComplete}
+              <button onClick={() => handleTimerComplete(Math.max(1, Math.floor((settings[mode] * 60 - timeLeft) / 60)))}
                 aria-label="Skip to next phase"
                 className="p-4 rounded-full transition-colors hover:bg-[oklch(var(--text)/0.05)]"
                 style={{ color: "oklch(var(--text-muted))" }}>

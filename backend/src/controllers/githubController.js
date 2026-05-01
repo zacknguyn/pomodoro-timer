@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import githubService from '../services/githubService.js';
 import settingsRepository from '../repositories/settingsRepository.js';
+import groupRepository from '../repositories/groupRepository.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -28,6 +29,17 @@ router.get('/callback', async (req, res) => {
 
     const payload = JSON.parse(Buffer.from(state.split('.')[1], 'base64').toString());
     settingsRepository.setGithubToken(payload.userId, tokenData.access_token);
+
+    // Auto-join: add user to any existing group whose repo they have access to
+    try {
+      const repos = await githubService.getUserRepos(tokenData.access_token);
+      const repoNames = repos.map(r => r.full_name);
+      const matchingGroups = groupRepository.findActiveGroupsForRepos(repoNames);
+      for (const group of matchingGroups) {
+        groupRepository.addMember(group.id, payload.userId, 'member');
+      }
+    } catch (_) { /* non-fatal */ }
+
     res.redirect(`${FRONTEND_URL}/github/callback?success=true`);
   } catch (err) {
     res.redirect(`${FRONTEND_URL}/github/callback?error=server_error`);
