@@ -21,6 +21,7 @@ const LoginScreen = () => {
       const { token, user } = await authApi.login(email, password);
       localStorage.setItem('registry_token', token);
       localStorage.setItem('registry_user', JSON.stringify(user));
+      localStorage.removeItem('github_token');
       navigate('/');
     } catch (err) {
       setError(err.message);

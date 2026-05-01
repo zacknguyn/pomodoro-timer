@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { User, LogOut, Menu } from "lucide-react";
+import { User, LogOut, Menu, Sun, Moon } from "lucide-react";
 
 const ROUTE_LABELS = {
   '/': 'Workspace',
@@ -16,9 +16,18 @@ const Header = ({ isDeepFocus, onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const ref = useRef(null);
 
   const pageLabel = ROUTE_LABELS[location.pathname] || 'Workspace';
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+    if (next) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  };
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -49,32 +58,43 @@ const Header = ({ isDeepFocus, onMenuClick }) => {
         </span>
       </div>
 
-      {/* Avatar */}
-      <div className="relative" ref={ref}>
-        <button onClick={() => setOpen(!open)}
-          aria-label="Open profile menu"
-          aria-expanded={open}
-          className="w-9 h-9 rounded-full overflow-hidden border-2 transition-all hover:scale-105"
-          style={{ borderColor: open ? "oklch(var(--primary))" : "oklch(var(--text) / 0.1)" }}>
-          <img src="https://github.com/shadcn.png" alt="Operator" className="w-full h-full object-cover" />
+      <div className="flex items-center gap-2">
+        {/* Dark mode toggle */}
+        <button onClick={toggleDark}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          className="p-2 rounded-full transition-colors hover:bg-[oklch(var(--text)/0.05)]"
+          style={{ color: "oklch(var(--text-muted))" }}>
+          {React.createElement(dark ? Sun : Moon, { className: "w-4 h-4" })}
         </button>
 
-        {open && (
-          <div className="absolute top-full right-0 mt-3 w-52 rounded-2xl border shadow-xl overflow-hidden z-50"
-            style={{ background: "oklch(var(--canvas))", borderColor: "oklch(var(--text) / 0.07)" }}>
-            <div className="px-5 py-4 border-b" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
-              <p className="mc-label" style={{ color: "oklch(var(--text))" }}>Operator</p>
+        {/* Avatar */}
+        <div className="relative" ref={ref}>
+          <button onClick={() => setOpen(!open)}
+            aria-label="Open profile menu"
+            aria-expanded={open}
+            className="w-9 h-9 rounded-full overflow-hidden border-2 transition-all hover:scale-105"
+            style={{ borderColor: open ? "oklch(var(--primary))" : "oklch(var(--text) / 0.1)" }}>
+            <img src="https://github.com/shadcn.png" alt="Operator" className="w-full h-full object-cover" />
+          </button>
+
+          {open && (
+            <div className="absolute top-full right-0 mt-3 w-52 rounded-2xl border shadow-xl overflow-hidden z-50"
+              style={{ background: "oklch(var(--canvas))", borderColor: "oklch(var(--text) / 0.07)" }}>
+              <div className="px-5 py-4 border-b" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
+                <p className="mc-label" style={{ color: "oklch(var(--text))" }}>Operator</p>
+              </div>
+              <DropdownItem icon={User} label="Profile" onClick={() => { setOpen(false); navigate('/profile'); }} />
+              <div className="h-px mx-4" style={{ background: "oklch(var(--text) / 0.06)" }} />
+              <DropdownItem icon={LogOut} label="Terminate" danger
+                onClick={() => {
+                  localStorage.removeItem('registry_token');
+                  localStorage.removeItem('registry_user');
+                  localStorage.removeItem('github_token');
+                  navigate('/login');
+                }} />
             </div>
-            <DropdownItem icon={User} label="Profile" onClick={() => { setOpen(false); navigate('/profile'); }} />
-            <div className="h-px mx-4" style={{ background: "oklch(var(--text) / 0.06)" }} />
-            <DropdownItem icon={LogOut} label="Terminate" danger
-              onClick={() => {
-                localStorage.removeItem('registry_token');
-                localStorage.removeItem('registry_user');
-                navigate('/login');
-              }} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </header>
   );

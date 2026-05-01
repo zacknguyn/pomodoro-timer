@@ -1,18 +1,36 @@
 import db from '../lib/db.js';
 
+const toClient = (row) => row ? ({
+  pomodoro: row.pomodoro,
+  shortBreak: row.short_break,
+  longBreak: row.long_break,
+  githubConnected: !!row.github_token,
+}) : null;
+
 export class SettingsRepository {
   findByUserId(userId) {
+    const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ?');
+    return toClient(stmt.get(userId));
+  }
+
+  findRawByUserId(userId) {
     const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ?');
     return stmt.get(userId);
   }
 
+  getGithubToken(userId) {
+    const row = db.prepare('SELECT github_token FROM settings WHERE user_id = ?').get(userId);
+    return row?.github_token ?? null;
+  }
+
+  setGithubToken(userId, token) {
+    db.prepare('UPDATE settings SET github_token = ? WHERE user_id = ?').run(token, userId);
+  }
+
   update(userId, settings) {
-    const stmt = db.prepare(`
-      UPDATE settings 
-      SET pomodoro = ?, short_break = ?, long_break = ?
-      WHERE user_id = ?
-    `);
-    stmt.run(settings.pomodoro, settings.shortBreak, settings.longBreak, userId);
+    db.prepare(`
+      UPDATE settings SET pomodoro = ?, short_break = ?, long_break = ? WHERE user_id = ?
+    `).run(settings.pomodoro, settings.shortBreak, settings.longBreak, userId);
     return this.findByUserId(userId);
   }
 }

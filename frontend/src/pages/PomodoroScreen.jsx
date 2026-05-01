@@ -59,10 +59,10 @@ const PomodoroScreen = () => {
   const cardRef = useRef(null);
   const playBtnRef = useRef(null);
 
-  const [githubToken] = useState(() => localStorage.getItem("github_token") || "");
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [commits, setCommits] = useState([]);
+  const [githubConnected, setGithubConnected] = useState(false);
   const [settings] = useState(() => {
     const s = localStorage.getItem("kernel_settings");
     return s ? JSON.parse(s) : { pomodoro: 25, shortBreak: 5, longBreak: 15 };
@@ -108,15 +108,17 @@ const PomodoroScreen = () => {
   };
 
   useEffect(() => {
-    if (githubToken) githubApi.getRepos(githubToken).then(setRepos).catch(console.error);
-  }, [githubToken]);
+    githubApi.getRepos()
+      .then(data => { setRepos(data); setGithubConnected(true); })
+      .catch(() => setGithubConnected(false));
+  }, []);
 
   useEffect(() => {
-    if (githubToken && selectedRepo) {
-      githubApi.getCommits(githubToken, selectedRepo.owner, selectedRepo.name)
+    if (selectedRepo) {
+      githubApi.getCommits(selectedRepo.owner, selectedRepo.name)
         .then(setCommits).catch(console.error);
     }
-  }, [githubToken, selectedRepo]);
+  }, [selectedRepo]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -249,8 +251,10 @@ const PomodoroScreen = () => {
                 </div>
               }
               right={
-                <Link to="/settings" className="mc-label hover:opacity-70 transition-opacity"
-                  style={{ color: "oklch(var(--primary))" }}>Connect</Link>
+                !githubConnected && (
+                  <Link to="/settings" className="mc-label hover:opacity-70 transition-opacity"
+                    style={{ color: "oklch(var(--primary))" }}>Connect</Link>
+                )
               }
             />
             <select

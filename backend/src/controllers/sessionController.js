@@ -28,6 +28,10 @@ router.get('/stats', (req, res) => {
   res.json(stats);
 });
 
+router.get('/heatmap', (req, res) => {
+  res.json(sessionRepository.getHeatmap(req.user.userId));
+});
+
 router.get('/', async (req, res) => {
   const sessions = sessionRepository.findByUserId(req.user.userId);
   res.json(sessions);

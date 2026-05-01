@@ -4,9 +4,7 @@ import { Mail, Github, Award, Clock, Activity, Zap, Trophy, Timer, X } from "luc
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-
-const GITHUB_DATA = Array.from({ length: 364 }, (_, i) => (i % 7 === 0 ? 0 : (i % 3) + 1));
-const POMOGIT_DATA = Array.from({ length: 364 }, (_, i) => (i % 5 === 0 ? 0 : (i % 2) + 1));
+import { sessionApi, githubApi } from "@/lib/api";
 
 const badges = ["Deep Work", "Registry Core", "Efficiency Pro", "Early Bird"];
 
@@ -45,27 +43,58 @@ const useFocusTrap = (active, onClose) => {
 const ProfileScreen = () => {
   const [trendMode, setTrendMode] = useState("github");
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [pomogitData, setPomogitData] = useState(Array(364).fill(0));
+  const [githubData, setGithubData] = useState([]); // [{date, level}]
+  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0 });
   const containerRef = useRef(null);
   const closeDrawer = useCallback(() => setSelectedEntry(null), []);
   const drawerRef = useFocusTrap(!!selectedEntry, closeDrawer);
 
-  const currentData = trendMode === "github" ? GITHUB_DATA : POMOGIT_DATA;
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('registry_user') || '{}'); } catch { return {}; }
+  }, []);
 
-  const entryLogs = useMemo(() => {
-    if (!selectedEntry) return [];
-    return Array.from({ length: selectedEntry.val }, (_, i) => ({
-      id: `LOG_${i}_${selectedEntry.date.replace(/\s/g, '_')}`,
-      score: 75 + i * 5,
-      index: i
-    }));
-  }, [selectedEntry]);
+  useEffect(() => {
+    sessionApi.heatmap().then(setPomogitData).catch(() => {});
+    sessionApi.stats().then(setStats).catch(() => {});
+    githubApi.heatmap().then(setGithubData).catch(() => {});
+  }, []);
+
+  const currentData = trendMode === "github"
+    ? githubData.map(d => d.level ?? 0)
+    : pomogitData;
+
+  const focusHours = Math.floor(stats.totalFocusMinutes / 60);
+  const focusMinutes = stats.totalFocusMinutes % 60;
+  const focusLabel = focusHours > 0 ? `${focusHours}h ${focusMinutes}m` : `${focusMinutes}m`;
+
+  const [drawerCommits, setDrawerCommits] = useState([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   const handleCellClick = (val, index) => {
-    const d = new Date(2026, 0, 1 + index);
-    setSelectedEntry({
-      val,
-      date: d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }),
-    });
+    let isoDate, displayDate;
+
+    if (trendMode === 'github' && githubData[index]?.date) {
+      isoDate = githubData[index].date;
+      // Add noon to avoid timezone shifting the date
+      displayDate = new Date(isoDate + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() - (363 - index));
+      isoDate = d.toISOString().slice(0, 10);
+      displayDate = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    setSelectedEntry({ val, date: displayDate, isoDate });
+    setDrawerCommits([]);
+
+    if (trendMode === 'github' && val > 0) {
+      setDrawerLoading(true);
+      githubApi.searchCommits(isoDate)
+        .then(setDrawerCommits)
+        .catch(() => {})
+        .finally(() => setDrawerLoading(false));
+    }
   };
 
   useGSAP(() => {
@@ -92,7 +121,7 @@ const ProfileScreen = () => {
 
         <div className="space-y-8">
           <div className="space-y-2">
-            <h1 className="mc-display text-7xl tracking-tighter">Quang Dev.</h1>
+            <h1 className="mc-display text-7xl tracking-tighter">{user.email?.split('@')[0] || 'Operator'}.</h1>
             <p className="mc-label">Commander Node · Cluster_Alpha</p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -104,16 +133,11 @@ const ProfileScreen = () => {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-6 pt-2">
-            <a href="#" className="flex items-center gap-2 mc-body text-sm font-bold transition-opacity hover:opacity-60"
+            <span className="flex items-center gap-2 mc-body text-sm font-bold"
               style={{ color: "oklch(var(--text))" }}>
               {React.createElement(Mail, { className: "w-4 h-4", style: { color: "oklch(var(--primary))" } })}
-              email@registry.org
-            </a>
-            <a href="#" className="flex items-center gap-2 mc-body text-sm font-bold transition-opacity hover:opacity-60"
-              style={{ color: "oklch(var(--text))" }}>
-              {React.createElement(Github, { className: "w-4 h-4", style: { color: "oklch(var(--primary))" } })}
-              github.com/quang-dev
-            </a>
+              {user.email || '—'}
+            </span>
           </div>
         </div>
       </section>
@@ -130,14 +154,16 @@ const ProfileScreen = () => {
                 {React.createElement(Clock, { className: "w-3.5 h-3.5", style: { color: "oklch(var(--accent))" } })}
                 <span className="mc-label">Total Focus</span>
               </div>
-              <p className="mc-display leading-none tracking-tighter" style={{ fontSize: "clamp(3rem, 7vw, 5rem)", color: "oklch(var(--text))" }}>124h</p>
+              <p className="mc-display leading-none tracking-tighter" style={{ fontSize: "clamp(3rem, 7vw, 5rem)", color: "oklch(var(--text))" }}>
+                {stats.totalFocusMinutes > 0 ? focusLabel : "—"}
+              </p>
             </div>
           </div>
           {/* Three compact stats */}
           <div className="lg:col-span-7 grid grid-cols-3 pt-6 lg:pt-0 lg:pl-8 divide-x"
             style={{ borderTop: "1px solid oklch(var(--text) / 0.06)", "--tw-divide-opacity": 1 }}>
             {[
-              { label: "Efficiency", value: "98.2%" },
+              { label: "Sessions", value: stats.totalSessions > 0 ? stats.totalSessions : "—" },
               { label: "Awards", value: "12" },
               { label: "Sprint Rank", value: "#01" },
             ].map(({ label, value }) => (
@@ -170,7 +196,9 @@ const ProfileScreen = () => {
           </div>
         </div>
         <MagneticHeatmap
+          key={trendMode + currentData.length}
           data={currentData}
+          dates={trendMode === 'github' ? githubData.map(d => d.date) : null}
           onCellClick={handleCellClick}
           trendMode={trendMode}
         />
@@ -206,7 +234,11 @@ const ProfileScreen = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {selectedEntry.val === 0 ? (
+                  {drawerLoading ? (
+                    <div className="py-20 text-center">
+                      <p className="mc-label">Loading commits…</p>
+                    </div>
+                  ) : selectedEntry.val === 0 ? (
                     <div className="py-20 text-center border-2 border-dashed rounded-[32px]"
                       style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
                       <p className="text-5xl mb-4" style={{ color: "oklch(var(--text) / 0.15)" }}>∅</p>
@@ -214,28 +246,33 @@ const ProfileScreen = () => {
                         No transmissions recorded.
                       </p>
                     </div>
-                  ) : entryLogs.map((log) => (
-                    <div key={log.id} className="flex items-center justify-between p-5 rounded-2xl border transition-all group hover:border-[oklch(var(--primary)/0.2)]"
+                  ) : trendMode === 'github' ? drawerCommits.map((c) => (
+                    <a key={c.sha} href={c.url} target="_blank" rel="noreferrer"
+                      className="flex items-start gap-4 p-5 rounded-2xl border transition-all group hover:border-[oklch(var(--primary)/0.2)] block"
                       style={{ background: "oklch(var(--text) / 0.02)", borderColor: "oklch(var(--text) / 0.05)" }}>
-                      <div className="flex items-center gap-4">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
-                          style={{ background: "oklch(var(--canvas))", color: trendMode === 'github' ? "oklch(var(--primary))" : "oklch(var(--accent))" }}>
-                          {trendMode === 'github'
-                            ? React.createElement(Github, { className: "w-4 h-4" })
-                            : React.createElement(Timer, { className: "w-4 h-4" })}
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="mc-body text-sm font-bold" style={{ color: "oklch(var(--text))" }}>
-                            {trendMode === 'github' ? `Transmission #${log.index + 1}` : `Session Cluster`}
-                          </p>
-                          <p className="mc-label">{log.id} · 10:45 AM</p>
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                        style={{ background: "oklch(var(--canvas))", color: "oklch(var(--primary))" }}>
+                        {React.createElement(Github, { className: "w-4 h-4" })}
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <p className="mc-body text-sm font-bold truncate" style={{ color: "oklch(var(--text))" }}>{c.message}</p>
+                        <div className="flex items-center gap-2 mc-label">
+                          <span style={{ color: "oklch(var(--primary) / 0.8)" }}>{c.repo}</span>
+                          <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
+                          <span>{c.sha}</span>
+                          <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
+                          <span>{new Date(c.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
-                      <span className="mc-body text-[11px] font-bold" style={{ color: "oklch(var(--text-muted))" }}>
-                        {log.score}%
-                      </span>
+                    </a>
+                  )) : (
+                    <div className="py-20 text-center border-2 border-dashed rounded-[32px]"
+                      style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
+                      <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text-muted))" }}>
+                        Switch to GitHub mode to view commits.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </Motion.div>
             </>
@@ -272,28 +309,25 @@ const RADIUS = 80;
 
 // Mobile: last 26 weeks (6 months), tap to reveal tooltip
 // Desktop: full 52 weeks, magnetic hover
-const MagneticHeatmap = ({ data, onCellClick, trendMode }) => {
+const MagneticHeatmap = ({ data, dates, onCellClick, trendMode }) => {
   const gridRef = useRef(null);
   const rafRef = useRef(null);
   const mouseRef = useRef({ x: -999, y: -999 });
   const [tooltip, setTooltip] = useState(null);
-  const prevTrendRef = useRef(trendMode);
-
   const colors = CELL_COLORS[trendMode] ?? CELL_COLORS.pomogit;
   const mobileData = data.slice(-26 * 7);
   const mobileOffset = data.length - mobileData.length;
 
-  // Wave animation when trendMode changes
+  // Wave animation when trendMode changes OR data first loads
   useEffect(() => {
-    if (prevTrendRef.current === trendMode) return;
-    prevTrendRef.current = trendMode;
     if (REDUCED_MOTION || !gridRef.current) return;
     const cells = Array.from(gridRef.current.querySelectorAll('[data-cell]'));
+    if (!cells.length) return;
     gsap.fromTo(cells,
       { scale: 0.6, opacity: 0 },
       { scale: 1, opacity: 1, duration: 0.35, ease: "power3.out", stagger: { each: 0.002, from: "start" } }
     );
-  }, [trendMode]);
+  }, [trendMode, data.length]);
 
   const updateCells = useCallback(() => {
     if (!gridRef.current || REDUCED_MOTION || IS_TOUCH) return;
@@ -325,13 +359,14 @@ const MagneticHeatmap = ({ data, onCellClick, trendMode }) => {
     if (cell) {
       const idx = parseInt(cell.dataset.cell, 10);
       const val = data[idx];
-      const d = new Date(2026, 0, 1 + idx);
-      // Use viewport coords for portal tooltip
-      setTooltip({ val, x: e.clientX, y: e.clientY, date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) });
+      const dateStr = dates?.[idx]
+        ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
+      setTooltip({ val, x: e.clientX, y: e.clientY, date: dateStr });
     } else {
       setTooltip(null);
     }
-  }, [updateCells, data]);
+  }, [updateCells, data, dates]);
 
   const handleMouseLeave = useCallback(() => {
     if (IS_TOUCH) return;
@@ -343,10 +378,11 @@ const MagneticHeatmap = ({ data, onCellClick, trendMode }) => {
 
   // Touch: tap cell to show/dismiss tooltip
   const handleTouchCell = useCallback((val, idx) => {
-    const d = new Date(2026, 0, 1 + idx);
-    const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    setTooltip(prev => prev?.idx === idx ? null : { val, idx, date, touch: true });
-  }, []);
+    const dateStr = dates?.[idx]
+      ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
+    setTooltip(prev => prev?.idx === idx ? null : { val, idx, date: dateStr, touch: true });
+  }, [dates]);
 
   useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 

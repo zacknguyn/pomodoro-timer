@@ -11,14 +11,14 @@ import EditorialCard from "@/components/EditorialCard";
 
 const Dashboard = () => {
   const containerRef = useRef(null);
-  const [stats, setStats] = useState({ totalSessions: 0, totalFocusSeconds: 0 });
+  const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0 });
 
   useEffect(() => {
     sessionApi.stats().then(setStats).catch(() => {});
   }, []);
 
-  const focusHours = Math.floor(stats.totalFocusSeconds / 3600);
-  const focusMinutes = Math.floor((stats.totalFocusSeconds % 3600) / 60);
+  const focusHours = Math.floor(stats.totalFocusMinutes / 60);
+  const focusMinutes = stats.totalFocusMinutes % 60;
   const focusLabel = focusHours > 0 ? `${focusHours}h ${focusMinutes}m` : `${focusMinutes}m`;
 
   const teamMembers = [

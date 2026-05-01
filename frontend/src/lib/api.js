@@ -9,6 +9,12 @@ const fetcher = async (url, options = {}) => {
   };
 
   const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
+  if (response.status === 401) {
+    localStorage.removeItem('registry_token');
+    localStorage.removeItem('registry_user');
+    window.location.href = '/login';
+    return;
+  }
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'API Request failed');
@@ -28,19 +34,23 @@ export const authApi = {
 };
 
 export const sessionApi = {
-  create: (data) => fetcher('/sessions', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  create: (data) => fetcher('/sessions', { method: 'POST', body: JSON.stringify(data) }),
   list: () => fetcher('/sessions'),
   stats: () => fetcher('/sessions/stats'),
+  heatmap: () => fetcher('/sessions/heatmap'),
 };
 
 export const githubApi = {
-  getRepos: (githubToken) => fetcher('/github/repos', {
-    headers: { 'x-github-token': githubToken },
-  }),
-  getCommits: (githubToken, owner, repo) => fetcher(`/github/repos/${owner}/${repo}/commits`, {
-    headers: { 'x-github-token': githubToken },
+  getRepos: () => fetcher('/github/repos'),
+  getCommits: (owner, repo) => fetcher(`/github/repos/${owner}/${repo}/commits`),
+  heatmap: () => fetcher('/github/heatmap'),
+  searchCommits: (date) => fetcher(`/github/commits/search?date=${date}`),
+};
+
+export const settingsApi = {
+  get: () => fetcher('/settings'),
+  update: (data) => fetcher('/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
   }),
 };

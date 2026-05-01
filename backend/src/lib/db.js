@@ -33,8 +33,14 @@ db.exec(`
     pomodoro INTEGER DEFAULT 25,
     short_break INTEGER DEFAULT 5,
     long_break INTEGER DEFAULT 15,
+    github_token TEXT,
     FOREIGN KEY (user_id) REFERENCES users (id)
   );
 `);
+
+// Add github_token column if it doesn't exist (migration for existing DBs)
+try {
+  db.exec('ALTER TABLE settings ADD COLUMN github_token TEXT');
+} catch (_) { /* column already exists */ }
 
 export default db;

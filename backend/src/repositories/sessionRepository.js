@@ -26,8 +26,32 @@ export class SessionRepository {
     ).get(userId);
     return {
       totalSessions: totalSessions.count,
-      totalFocusSeconds: totalFocus.total,
+      totalFocusMinutes: totalFocus.total,
     };
+  }
+
+  getHeatmap(userId) {
+    // Returns array of 364 values (0-3) representing daily session intensity
+    const rows = db.prepare(`
+      SELECT date(completed_at) as day, COUNT(*) as count
+      FROM sessions
+      WHERE user_id = ? AND mode = 'pomodoro'
+        AND completed_at >= date('now', '-364 days')
+      GROUP BY day
+    `).all(userId);
+
+    const map = {};
+    rows.forEach(r => { map[r.day] = r.count; });
+
+    const result = [];
+    for (let i = 363; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const count = map[key] || 0;
+      result.push(Math.min(count >= 4 ? 3 : count >= 2 ? 2 : count >= 1 ? 1 : 0, 3));
+    }
+    return result;
   }
 }
 
