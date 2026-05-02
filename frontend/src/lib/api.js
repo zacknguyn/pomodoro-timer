@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const fetcher = async (url, options = {}) => {
   const token = localStorage.getItem('registry_token');
@@ -21,7 +21,7 @@ const fetcher = async (url, options = {}) => {
     window.dispatchEvent(new CustomEvent('api-error', { detail: message }));
     throw new Error(message);
   }
-  return response.json();
+  return response.status === 204 ? null : response.json();
 };
 
 export const authApi = {
@@ -39,8 +39,20 @@ export const sessionApi = {
   create: (data) => fetcher('/sessions', { method: 'POST', body: JSON.stringify(data) }),
   list: () => fetcher('/sessions'),
   byDate: (date) => fetcher(`/sessions?date=${date}`),
-  stats: () => fetcher('/sessions/stats'),
-  heatmap: () => fetcher('/sessions/heatmap'),
+  stats: () => fetcher(`/sessions/stats?tz=${-new Date().getTimezoneOffset() / 60}`),
+  heatmap: () => fetcher(`/sessions/heatmap?tz=${-new Date().getTimezoneOffset() / 60}`),
+  delete: (id) => fetcher(`/sessions/${id}`, { method: 'DELETE' }),
+  exportCsv: async () => {
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    const token = localStorage.getItem('registry_token');
+    const tz = -new Date().getTimezoneOffset(); // minutes ahead of UTC
+    const res = await fetch(`${base}/sessions/export?tz=${tz}`, { headers: { Authorization: `Bearer ${token}` } });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'pomogit-sessions.csv'; a.click();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export const groupApi = {
@@ -50,10 +62,16 @@ export const groupApi = {
   setStatus: (id, status) => fetcher(`/groups/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   delete: (id) => fetcher(`/groups/${id}`, { method: 'DELETE' }),
   leave: (id) => fetcher(`/groups/${id}/leave`, { method: 'DELETE' }),
+  commits: (id) => fetcher(`/groups/${id}/commits`),
+  telemetry: (id) => fetcher(`/groups/${id}/telemetry`),
+  notes: (id) => fetcher(`/groups/${id}/notes`),
+  addNote: (id, content) => fetcher(`/groups/${id}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
 };
 
 export const usersApi = {
   list: () => fetcher('/users'),
+  me: () => fetcher('/users/me'),
+  updateMe: (data) => fetcher('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 export const githubApi = {
@@ -65,8 +83,18 @@ export const githubApi = {
 
 export const settingsApi = {
   get: () => fetcher('/settings'),
-  update: (data) => fetcher('/settings', {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  }),
+  update: (data) => fetcher('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
+  disconnectGithub: () => fetcher('/settings/github', { method: 'DELETE' }),
+};
+
+const adminFetcher = (url, options = {}) => {
+  const secret = import.meta.env.VITE_ADMIN_SECRET || '';
+  return fetcher(url, { ...options, headers: { 'x-admin-secret': secret, ...options.headers } });
+};
+
+export const adminApi = {
+  stats: () => adminFetcher('/admin/stats'),
+  users: () => adminFetcher('/admin/users'),
+  ban: (id) => adminFetcher(`/admin/users/${id}/ban`, { method: 'PATCH' }),
+  delete: (id) => adminFetcher(`/admin/users/${id}`, { method: 'DELETE' }),
 };

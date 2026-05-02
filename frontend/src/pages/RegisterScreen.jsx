@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Github } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import { authApi } from '@/lib/api';
+import { authApi, settingsApi } from '@/lib/api';
 
 const RegisterScreen = () => {
   const container = useRef();
   const navigate = useNavigate();
+  if (localStorage.getItem('registry_token')) return <Navigate to="/" replace />;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,12 +16,17 @@ const RegisterScreen = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
     setLoading(true);
     setError('');
     try {
       const { token, user } = await authApi.register(email, password);
       localStorage.setItem('registry_token', token);
       localStorage.setItem('registry_user', JSON.stringify(user));
+      try {
+        const s = await settingsApi.get();
+        localStorage.setItem('kernel_settings', JSON.stringify({ pomodoro: s.pomodoro, shortBreak: s.shortBreak, longBreak: s.longBreak }));
+      } catch { /* non-fatal */ }
       navigate('/');
     } catch (err) {
       setError(err.message);

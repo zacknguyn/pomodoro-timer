@@ -28,4 +28,9 @@ router.patch('/', async (req, res) => {
   }
 });
 
+router.delete('/github', (req, res) => {
+  settingsRepository.clearGithub(req.user.userId);
+  res.json({ success: true });
+});
+
 export default router;

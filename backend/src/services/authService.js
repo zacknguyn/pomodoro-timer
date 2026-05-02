@@ -2,7 +2,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import userRepository from '../repositories/userRepository.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key';
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export class AuthService {
   async register(email, password) {

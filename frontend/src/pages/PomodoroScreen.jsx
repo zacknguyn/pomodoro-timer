@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, SkipForward, Github, Target } from "lucide-react";
+import { useBlocker } from "react-router-dom";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Link } from "react-router-dom";
 import { sessionApi, githubApi } from "@/lib/api";
+import { toast } from "sonner";
 import SectionHeader from "@/components/SectionHeader";
 
 gsap.registerPlugin(useGSAP);
@@ -60,18 +62,81 @@ const PomodoroScreen = () => {
   const playBtnRef = useRef(null);
 
   const [repos, setRepos] = useState([]);
-  const [selectedRepo, setSelectedRepo] = useState(null);
+  const [selectedRepo, setSelectedRepo] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('last_repo') || 'null'); } catch { return null; }
+  });
   const [commits, setCommits] = useState([]);
   const [githubConnected, setGithubConnected] = useState(false);
-  const [settings] = useState(() => {
+  const [settings, setSettings] = useState(() => {
     const s = localStorage.getItem("kernel_settings");
     return s ? JSON.parse(s) : { pomodoro: 25, shortBreak: 5, longBreak: 15 };
   });
+
+  // Re-read settings when changed in another tab or Settings screen
+  useEffect(() => {
+    const handler = () => {
+      const s = localStorage.getItem("kernel_settings");
+      if (s) setSettings(JSON.parse(s));
+    };
+    window.addEventListener('storage', handler);
+    window.addEventListener('focus', handler);
+    return () => { window.removeEventListener('storage', handler); window.removeEventListener('focus', handler); };
+  }, []);
   const [mode, setMode] = useState("pomodoro");
   const [timeLeft, setTimeLeft] = useState(settings.pomodoro * 60);
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const hasStarted = useRef(false);
+
+  // Request notification permission with context
+  useEffect(() => {
+    if (!('Notification' in window) || Notification.permission !== 'default') return;
+    const t = setTimeout(() => {
+      toast('Enable session notifications?', {
+        description: 'Get notified when your focus or break ends.',
+        action: {
+          label: 'Enable',
+          onClick: () => Notification.requestPermission(),
+        },
+        duration: 8000,
+      });
+    }, 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const notify = (title, body) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
+  };
+
+  const chime = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.18, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    } catch { /* audio not available */ }
+  };
   const [focusIntent, setFocusIntent] = useState("");
+  const focusIntentRef = useRef("");
+  const selectedRepoRef = useRef(null);
+
+  // Keep refs in sync
+  useEffect(() => { focusIntentRef.current = focusIntent; }, [focusIntent]);
+  useEffect(() => { selectedRepoRef.current = selectedRepo; }, [selectedRepo]);
 
   useEffect(() => {
     sessionApi.list().then(sessions => {
@@ -87,27 +152,57 @@ const PomodoroScreen = () => {
         sessionApi.create({
           mode: "pomodoro",
           duration,
-          intent: focusIntent,
-          repoName: selectedRepo?.full_name
+          intent: focusIntentRef.current,
+          repoName: selectedRepoRef.current?.full_name
         }).catch(console.error);
       }
       setSessionsCompleted(prev => prev + 1);
+      chime();
+      notify("Focus session complete", "Time for a break. Well done.");
       setMode("shortBreak");
       setTimeLeft(settings.shortBreak * 60);
     } else {
+      chime();
+      notify("Break over", "Ready to focus again?");
       setMode("pomodoro");
       setTimeLeft(settings.pomodoro * 60);
     }
     setIsActive(false);
-  }, [mode, focusIntent, selectedRepo, settings]);
+    hasStarted.current = false;
+  }, [mode, settings]);
+
+  // Block navigation when timer is running
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    isActive && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      if (window.confirm('Timer is running. Leave anyway?')) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (isActive) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isActive]);
 
   const changeMode = (newMode) => {
     setIsActive(false);
+    hasStarted.current = false;
     setMode(newMode);
     setTimeLeft(settings[newMode] * 60);
   };
 
   const handlePlayPause = () => {
+    if (!isActive) hasStarted.current = true;
     if (!REDUCED_MOTION && playBtnRef.current) {
       gsap.fromTo(playBtnRef.current,
         { scale: 0.82, rotate: isActive ? -12 : 12 },
@@ -159,7 +254,7 @@ const PomodoroScreen = () => {
             style={{ background: "oklch(var(--primary) / 0.1)", color: "oklch(var(--primary))" }}>
             {mode === 'pomodoro' ? 'Focus Session' : 'Recovery Period'}
           </span>
-          <span className="mc-label">Cycle {sessionsCompleted + 1}</span>
+          <span className="mc-label">Session {(sessionsCompleted % 4) + 1} of 4</span>
         </div>
         <h1 className="mc-display text-5xl lg:text-7xl tracking-tight leading-none">
           Stay <span className="italic">present.</span>
@@ -210,18 +305,19 @@ const PomodoroScreen = () => {
                   : React.createElement(Play, { className: "w-7 h-7 fill-current ml-0.5" })}
               </button>
 
-              <button onClick={() => handleTimerComplete(Math.max(1, Math.floor((settings[mode] * 60 - timeLeft) / 60)))}
+              <button onClick={() => isActive && handleTimerComplete(Math.max(1, Math.floor(((settings[mode] ?? 25) * 60 - timeLeft) / 60)))}
                 aria-label="Skip to next phase"
-                className="p-4 rounded-full transition-colors hover:bg-[oklch(var(--text)/0.05)]"
+                disabled={!isActive}
+                className="p-4 rounded-full transition-all hover:bg-[oklch(var(--text)/0.05)] disabled:opacity-30 disabled:cursor-not-allowed"
                 style={{ color: "oklch(var(--text-muted))" }}>
                 {React.createElement(SkipForward, { className: "w-5 h-5" })}
               </button>
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 w-full">
               {Object.entries(MODES).map(([m, label]) => (
                 <button key={m} onClick={() => changeMode(m)}
-                  className="px-5 py-2 rounded-full mc-body text-[10px] font-bold uppercase tracking-widest transition-all"
+                  className="flex-1 px-2 sm:px-5 py-2 rounded-full mc-body text-[10px] font-bold uppercase tracking-widest transition-all text-center"
                   style={mode === m
                     ? { background: "oklch(var(--text))", color: "oklch(var(--canvas))" }
                     : { color: "oklch(var(--text-muted))" }}>
@@ -270,7 +366,11 @@ const PomodoroScreen = () => {
             <select
               id="repo-select"
               aria-label="Select repository"
-              onChange={(e) => setSelectedRepo(repos.find(r => r.full_name === e.target.value))}
+              onChange={(e) => {
+                const repo = repos.find(r => r.full_name === e.target.value) || null;
+                setSelectedRepo(repo);
+                if (repo) localStorage.setItem('last_repo', JSON.stringify(repo));
+              }}
               className="w-full rounded-2xl px-4 py-3 mc-body text-sm focus:outline-none appearance-none cursor-pointer border"
               style={{ background: "oklch(var(--canvas))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }}>
               <option value="">Select repository</option>

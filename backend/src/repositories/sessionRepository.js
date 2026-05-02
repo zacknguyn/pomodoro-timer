@@ -17,6 +17,10 @@ export class SessionRepository {
     return stmt.all(userId);
   }
 
+  delete(id, userId) {
+    db.prepare('DELETE FROM sessions WHERE id = ? AND user_id = ?').run(id, userId);
+  }
+
   findByDate(userId, date) {
     // date = YYYY-MM-DD
     const stmt = db.prepare(`
@@ -27,7 +31,11 @@ export class SessionRepository {
     return stmt.all(userId, date);
   }
 
-  getStats(userId) {
+  getStats(userId, tzOffset = 0) {
+    const sign = tzOffset >= 0 ? '+' : '-';
+    const absH = Math.abs(tzOffset);
+    const tzMod = `${sign}${absH} hours`;
+
     const totalSessions = db.prepare(
       "SELECT COUNT(*) as count FROM sessions WHERE user_id = ? AND mode = 'pomodoro'"
     ).get(userId);
@@ -35,9 +43,9 @@ export class SessionRepository {
       "SELECT COALESCE(SUM(duration), 0) as total FROM sessions WHERE user_id = ? AND mode = 'pomodoro'"
     ).get(userId);
 
-    // Streak: consecutive days with at least one pomodoro session
+    // Streak: consecutive days with at least one pomodoro session (in user's local timezone)
     const days = db.prepare(`
-      SELECT DISTINCT date(completed_at) as day
+      SELECT DISTINCT date(completed_at, '${tzMod}') as day
       FROM sessions WHERE user_id = ? AND mode = 'pomodoro'
       ORDER BY day DESC
     `).all(userId).map(r => r.day);
@@ -45,12 +53,13 @@ export class SessionRepository {
     let currentStreak = 0;
     let longestStreak = 0;
     let streak = 0;
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    // today/yesterday in user's local time
+    const nowLocal = new Date(Date.now() + tzOffset * 3600000);
+    const today = nowLocal.toISOString().slice(0, 10);
+    const yesterday = new Date(nowLocal - 86400000).toISOString().slice(0, 10);
 
     for (let i = 0; i < days.length; i++) {
       if (i === 0) {
-        // Streak is active only if last session was today or yesterday
         if (days[0] !== today && days[0] !== yesterday) break;
         streak = 1;
       } else {
@@ -63,7 +72,6 @@ export class SessionRepository {
     }
     currentStreak = streak;
 
-    // Longest streak
     let run = 0;
     for (let i = 0; i < days.length; i++) {
       if (i === 0) { run = 1; }
@@ -83,12 +91,16 @@ export class SessionRepository {
     };
   }
 
-  getHeatmap(userId) {
+  getHeatmap(userId, tzOffset = 0) {
+    const sign = tzOffset >= 0 ? '+' : '-';
+    const absH = Math.abs(tzOffset);
+    const tzMod = `${sign}${absH} hours`;
+
     const rows = db.prepare(`
-      SELECT date(completed_at) as day, COUNT(*) as count
+      SELECT date(completed_at, '${tzMod}') as day, COUNT(*) as count
       FROM sessions
       WHERE user_id = ? AND mode = 'pomodoro'
-        AND completed_at >= date('now', '-364 days')
+        AND date(completed_at, '${tzMod}') >= date('now', '${tzMod}', '-364 days')
       GROUP BY day
     `).all(userId);
 
@@ -97,8 +109,8 @@ export class SessionRepository {
 
     const result = [];
     for (let i = 363; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+      const d = new Date(Date.now() + tzOffset * 3600000);
+      d.setUTCDate(d.getUTCDate() - i);
       const key = d.toISOString().slice(0, 10);
       const count = map[key] || 0;
       const level = count >= 4 ? 3 : count >= 2 ? 2 : count >= 1 ? 1 : 0;

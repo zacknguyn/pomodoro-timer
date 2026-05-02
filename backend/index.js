@@ -7,6 +7,7 @@ import settingsController from './src/controllers/settingsController.js';
 import githubController from './src/controllers/githubController.js';
 import groupController from './src/controllers/groupController.js';
 import usersController from './src/controllers/usersController.js';
+import adminController from './src/controllers/adminController.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,6 +22,7 @@ app.use('/api/settings', settingsController);
 app.use('/api/github', githubController);
 app.use('/api/users', usersController);
 app.use('/api/groups', groupController);
+app.use('/api/admin', adminController);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

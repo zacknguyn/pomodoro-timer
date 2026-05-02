@@ -6,7 +6,7 @@
 
 ## What It Is
 
-A Pomodoro Timer built with **Vite + React** on the frontend and **Java Spring Boot** on the backend. It solves the gap between productivity tools that are functional and ones users actually *want* to return to — most timers are either too bare or too cluttered to feel intentional.
+A Pomodoro Timer built with **Vite + React** on the frontend and **Node.js** on the backend. It solves the gap between productivity tools that are functional and ones users actually *want* to return to — most timers are either too bare or too cluttered to feel intentional.
 
 This project also explores an **AI-driven design workflow**, where an AI agent transformed a structured creative brief into a full, production-ready design system — compressing what would normally be days of design work into a consistent, implementable specification.
 
@@ -17,7 +17,7 @@ This project also explores an **AI-driven design workflow**, where an AI agent t
 | Layer | Technology |
 |---|---|
 | Frontend | Vite + React |
-| Backend | Java Spring Boot |
+| Backend | Node.js |
 | Styling | CSS + shadcn/ui |
 | Design System | AI-generated via `.impeccable.md` → `DESIGN.md` |
 
@@ -33,7 +33,7 @@ Rather than hand-crafting a design system, this project used an **AI agent as a 
 
 3. **Component Implementation** — The generated spec became the authoritative reference for building React components — timer display, session controls, mode switching — keeping the UI consistent without manual design decisions at every step.
 
-4. **Backend Integration** — Spring Boot handles session persistence and Pomodoro cycle tracking, decoupled from the frontend so the UI stays stateless and clean.
+4. **Backend Integration** — Node.js handles session persistence and Pomodoro cycle tracking, decoupled from the frontend so the UI stays stateless and clean.
 
 The AI wasn't used to generate code. It acted as a **design reasoning agent** — the human role was intent-setting, validation, and execution.
 

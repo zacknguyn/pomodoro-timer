@@ -27,8 +27,18 @@ router.get('/callback', async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/github/callback?error=token_exchange_failed`);
     }
 
-    const payload = JSON.parse(Buffer.from(state.split('.')[1], 'base64').toString());
-    settingsRepository.setGithubToken(payload.userId, tokenData.access_token);
+    const userId = req.query.state;
+    if (!userId) return res.redirect(`${FRONTEND_URL}/github/callback?error=missing_state`);
+    settingsRepository.setGithubToken(userId, tokenData.access_token);
+
+    // Save GitHub username
+    try {
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` }
+      });
+      const ghUser = await userRes.json();
+      if (ghUser.login) settingsRepository.setGithubUsername(userId, ghUser.login);
+    } catch (_) { /* non-fatal */ }
 
     // Auto-join: add user to any existing group whose repo they have access to
     try {
@@ -36,7 +46,7 @@ router.get('/callback', async (req, res) => {
       const repoNames = repos.map(r => r.full_name);
       const matchingGroups = groupRepository.findActiveGroupsForRepos(repoNames);
       for (const group of matchingGroups) {
-        groupRepository.addMember(group.id, payload.userId, 'member');
+        groupRepository.addMember(group.id, userId, 'member');
       }
     } catch (_) { /* non-fatal */ }
 

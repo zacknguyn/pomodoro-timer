@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Github, Settings, Shield, CheckCircle } from "lucide-react";
 import { settingsApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const tabs = [
   { id: "github", label: "GitHub", icon: Github },
@@ -41,18 +42,30 @@ const SettingsScreen = () => {
 const GitHubSettings = () => {
   const [connected, setConnected] = useState(false);
 
+  const fetchConnected = () => settingsApi.get().then(s => setConnected(!!s?.githubConnected)).catch(() => {});
+
   useEffect(() => {
-    settingsApi.get().then(s => setConnected(!!s?.githubConnected)).catch(() => {});
+    fetchConnected();
+    window.addEventListener('focus', fetchConnected);
+    return () => window.removeEventListener('focus', fetchConnected);
   }, []);
 
   const handleConnect = () => {
     const token = localStorage.getItem('registry_token');
+    let userId = '';
+    try { userId = JSON.parse(atob(token.split('.')[1])).userId; } catch { /* fallback */ }
     const params = new URLSearchParams({
-      client_id: 'Ov23liX2UIVhFWvirv5f',
+      client_id: import.meta.env.VITE_GITHUB_CLIENT_ID,
       scope: 'repo read:org read:user',
-      state: token || '',
+      state: userId,
     });
     window.location.href = `https://github.com/login/oauth/authorize?${params}`;
+  };
+
+  const handleDisconnect = async () => {
+    await settingsApi.disconnectGithub();
+    setConnected(false);
+    toast.success('GitHub disconnected');
   };
 
   return (
@@ -82,9 +95,17 @@ const GitHubSettings = () => {
           {React.createElement(Shield, { className: "w-3.5 h-3.5", style: { color: "oklch(var(--primary))" } })}
           <span className="mc-label">Token stored securely on the server.</span>
         </div>
-        <button onClick={handleConnect} className="mc-btn-primary px-8">
-          {connected ? "Reconnect" : "Connect GitHub"}
-        </button>
+        {connected ? (
+          <button onClick={handleDisconnect}
+            className="px-6 py-2.5 rounded-full mc-body text-sm font-bold uppercase tracking-widest border transition-all hover:opacity-70"
+            style={{ borderColor: "oklch(var(--text) / 0.12)", color: "oklch(var(--text) / 0.5)" }}>
+            Disconnect
+          </button>
+        ) : (
+          <button onClick={handleConnect} className="mc-btn-primary px-8">
+            Connect GitHub
+          </button>
+        )}
       </div>
     </div>
   );
@@ -99,7 +120,7 @@ const FocusSettings = () => {
 
   useEffect(() => {
     settingsApi.get().then(s => {
-      const merged = { pomodoro: s.pomodoro, shortBreak: s.short_break, longBreak: s.long_break };
+      const merged = { pomodoro: s.pomodoro, shortBreak: s.shortBreak, longBreak: s.longBreak };
       setSettings(merged);
       localStorage.setItem("kernel_settings", JSON.stringify(merged));
     }).catch(() => {});
@@ -124,15 +145,6 @@ const FocusSettings = () => {
           <DurationItem label="Focus Cycle" value={settings.pomodoro} onChange={(v) => handleUpdate("pomodoro", v)} />
           <DurationItem label="Short Break" value={settings.shortBreak} onChange={(v) => handleUpdate("shortBreak", v)} />
           <DurationItem label="Long Break" value={settings.longBreak} onChange={(v) => handleUpdate("longBreak", v)} />
-        </div>
-      </div>
-
-      <div className="space-y-6 pt-8 border-t" style={{ borderColor: "oklch(var(--text) / 0.05)" }}>
-        <h3 className="mc-display text-3xl italic">Options.</h3>
-        <div className="space-y-1">
-          <DirectiveToggle title="Auto-start recovery periods" checked />
-          <DirectiveToggle title="Auto-start focus sessions" />
-          <DirectiveToggle title="Institutional lockdown mode" checked />
         </div>
       </div>
 
@@ -165,28 +177,5 @@ const DurationItem = ({ label, value, onChange }) => (
     </div>
   </div>
 );
-
-const DirectiveToggle = ({ title, checked: init }) => {
-  const [checked, setChecked] = useState(init);
-  return (
-    <button onClick={() => setChecked(!checked)}
-      className="w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-colors hover:bg-[oklch(var(--text)/0.03)]">
-      <span className="mc-body text-sm font-bold uppercase tracking-wide transition-colors"
-        style={{ color: checked ? "oklch(var(--text))" : "oklch(var(--text-muted))" }}>
-        {title}
-      </span>
-      <div className="w-12 h-6 rounded-full relative flex items-center px-1 border transition-all"
-        style={checked
-          ? { background: "oklch(var(--text))", borderColor: "oklch(var(--text))" }
-          : { background: "transparent", borderColor: "oklch(var(--text) / 0.12)" }}>
-        <div className="w-3.5 h-3.5 rounded-full transition-all"
-          style={{
-            transform: checked ? "translateX(1.25rem)" : "translateX(0)",
-            background: checked ? "oklch(var(--canvas))" : "oklch(var(--text) / 0.15)"
-          }} />
-      </div>
-    </button>
-  );
-};
 
 export default SettingsScreen;

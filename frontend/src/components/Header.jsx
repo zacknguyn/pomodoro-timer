@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { User, LogOut, Menu, Sun, Moon } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 
 const ROUTE_LABELS = {
   '/': 'Workspace',
@@ -12,12 +13,13 @@ const ROUTE_LABELS = {
   '/profile': 'Profile',
 };
 
-const Header = ({ isDeepFocus, onMenuClick }) => {
+const Header = ({ isDeepFocus, onMenuClick, collapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const ref = useRef(null);
+  const { displayName, avatar } = useProfile();
 
   const pageLabel = ROUTE_LABELS[location.pathname] || 'Workspace';
 
@@ -38,7 +40,7 @@ const Header = ({ isDeepFocus, onMenuClick }) => {
   if (isDeepFocus) return null;
 
   return (
-    <header className="fixed top-0 left-0 lg:left-72 right-0 z-40 px-4 lg:px-8 h-16 flex items-center justify-between"
+    <header className={`fixed top-0 left-0 right-0 z-40 px-4 lg:px-8 h-16 flex items-center justify-between transition-all duration-300 ${collapsed ? 'lg:left-16' : 'lg:left-72'}`}
       style={{ background: "oklch(var(--canvas) / 0.85)", backdropFilter: "blur(12px)", borderBottom: "1px solid oklch(var(--text) / 0.05)" }}>
 
       {/* Hamburger — mobile only */}
@@ -74,14 +76,14 @@ const Header = ({ isDeepFocus, onMenuClick }) => {
             aria-expanded={open}
             className="w-9 h-9 rounded-full overflow-hidden border-2 transition-all hover:scale-105"
             style={{ borderColor: open ? "oklch(var(--primary))" : "oklch(var(--text) / 0.1)" }}>
-            <img src="https://github.com/shadcn.png" alt="Operator" className="w-full h-full object-cover" />
+            <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
           </button>
 
           {open && (
             <div className="absolute top-full right-0 mt-3 w-52 rounded-2xl border shadow-xl overflow-hidden z-50"
               style={{ background: "oklch(var(--canvas))", borderColor: "oklch(var(--text) / 0.07)" }}>
               <div className="px-5 py-4 border-b" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
-                <p className="mc-label" style={{ color: "oklch(var(--text))" }}>Operator</p>
+                <p className="mc-label" style={{ color: "oklch(var(--text))" }}>{displayName}</p>
               </div>
               <DropdownItem icon={User} label="Profile" onClick={() => { setOpen(false); navigate('/profile'); }} />
               <div className="h-px mx-4" style={{ background: "oklch(var(--text) / 0.06)" }} />

@@ -53,19 +53,22 @@ class GroupRepository {
   getMembers(groupId) {
     const today = new Date().toISOString().slice(0, 10);
     return db.prepare(`
-      SELECT u.id, u.email,
+      SELECT u.id, u.email, u.display_name, u.avatar_style,
              gm.role, gm.joined_at,
+             s2.github_username,
              COUNT(s.id) as sessions_today,
              MAX(s.completed_at) as last_session_at
       FROM group_members gm
       JOIN users u ON u.id = gm.user_id
+      LEFT JOIN settings s2 ON s2.user_id = u.id
       LEFT JOIN sessions s ON s.user_id = u.id AND date(s.completed_at) = ? AND s.mode = 'pomodoro'
       WHERE gm.group_id = ?
       GROUP BY u.id
       ORDER BY gm.role DESC, u.email
     `).all(today, groupId).map(m => ({
       ...m,
-      name: m.email.split('@')[0],
+      name: m.display_name || m.email.split('@')[0],
+      avatarStyle: m.avatar_style || 'thumbs',
       isActive: m.last_session_at
         ? (Date.now() - new Date(m.last_session_at)) / 60000 < 30
         : false,

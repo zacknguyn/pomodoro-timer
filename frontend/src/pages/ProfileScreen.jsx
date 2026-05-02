@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Mail, Github, Award, Clock, Activity, Zap, Trophy, Timer, X } from "lucide-react";
+import { Mail, Github, Award, Clock, Activity, Zap, Trophy, Timer, X, ExternalLink, Download, Pencil } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { sessionApi, githubApi } from "@/lib/api";
+import { toast } from "sonner";
+import { sessionApi, githubApi, usersApi } from "@/lib/api";
+import { useProfile, avatarUrl } from "@/hooks/useProfile";
+import { parseUTC } from "@/lib/utils";
 import Skeleton from "@/components/Skeleton";
-
-const badges = ["Deep Work", "Registry Core", "Efficiency Pro", "Early Bird"];
 
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
@@ -49,12 +50,29 @@ const ProfileScreen = () => {
   const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0, currentStreak: 0, longestStreak: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
   const containerRef = useRef(null);
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    await usersApi.updateMe({ displayName: editForm.displayName || null, bio: editForm.bio || null, avatarStyle: editForm.avatarStyle });
+    await refreshProfile();
+    setEditOpen(false);
+    toast.success('Profile updated');
+  };
+
   const closeDrawer = useCallback(() => setSelectedEntry(null), []);
   const drawerRef = useFocusTrap(!!selectedEntry, closeDrawer);
 
+  const { profile, displayName, avatar, refresh: refreshProfile } = useProfile();
   const user = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('registry_user') || '{}'); } catch { return {}; }
   }, []);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ displayName: '', bio: '', avatarStyle: 'thumbs' });
+
+  // Sync editForm when panel opens
+  const openEdit = () => {
+    setEditForm({ displayName: profile?.displayName || '', bio: profile?.bio || '', avatarStyle: profile?.avatarStyle || 'thumbs' });
+    setEditOpen(true);
+  };
 
   useEffect(() => {
     sessionApi.heatmap().then(setPomogitData).catch(() => {});
@@ -125,7 +143,7 @@ const ProfileScreen = () => {
         <div className="relative group w-fit">
           <div className="w-48 h-48 rounded-full overflow-hidden border-4 shadow-xl"
             style={{ borderColor: "oklch(var(--surface))", background: "oklch(var(--surface-alt))" }}>
-            <img src="https://github.com/shadcn.png" alt="Quang Dev"
+            <img src={avatar} alt={displayName}
               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
           </div>
           <div className="absolute bottom-3 right-3 w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-lg animate-bounce"
@@ -136,16 +154,18 @@ const ProfileScreen = () => {
 
         <div className="space-y-8">
           <div className="space-y-2">
-            <h1 className="mc-display text-7xl tracking-tighter">{user.email?.split('@')[0] || 'Operator'}.</h1>
-            <p className="mc-label">Commander Node · Cluster_Alpha</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {badges.map((b, i) => (
-              <span key={i} className="px-4 py-1.5 rounded-full mc-body text-[11px] font-bold uppercase tracking-widest cursor-default transition-colors hover:bg-[oklch(var(--primary))]"
-                style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
-                {b}
-              </span>
-            ))}
+            <h1 className="mc-display text-7xl tracking-tighter">{displayName}.</h1>
+            <div className="flex items-center gap-3">
+              {profile?.bio
+                ? <p className="mc-body text-sm" style={{ color: "oklch(var(--text) / 0.5)" }}>{profile.bio}</p>
+                : <p className="mc-label" style={{ color: "oklch(var(--text) / 0.3)" }}>No bio yet.</p>
+              }
+              <button onClick={openEdit}
+                className="flex items-center gap-1.5 mc-label hover:opacity-70 transition-opacity">
+                {React.createElement(Pencil, { className: "w-3 h-3" })}
+                Edit
+              </button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-6 pt-2">
             <span className="flex items-center gap-2 mc-body text-sm font-bold"
@@ -153,6 +173,18 @@ const ProfileScreen = () => {
               {React.createElement(Mail, { className: "w-4 h-4", style: { color: "oklch(var(--primary))" } })}
               {user.email || '—'}
             </span>
+            {user.email && (
+              <a href={`/u/${user.email.split('@')[0]}`} target="_blank" rel="noreferrer"
+                className="flex items-center gap-1.5 mc-label hover:opacity-70 transition-opacity">
+                {React.createElement(ExternalLink, { className: "w-3 h-3" })}
+                Public profile
+              </a>
+            )}
+            <button onClick={() => sessionApi.exportCsv()}
+              className="flex items-center gap-1.5 mc-label hover:opacity-70 transition-opacity">
+              {React.createElement(Download, { className: "w-3 h-3" })}
+              Export CSV
+            </button>
           </div>
         </div>
       </section>
@@ -236,13 +268,18 @@ const ProfileScreen = () => {
                 role="dialog" aria-modal="true" aria-label={`Registry log for ${selectedEntry.date}`}
                 initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 35, stiffness: 350 }}
-                className="fixed top-0 right-0 h-screen w-full max-w-lg z-[101] overflow-y-auto p-12 space-y-12"
+                className="fixed top-0 right-0 h-screen w-full max-w-lg z-[101] overflow-y-auto p-6 sm:p-12 space-y-12"
                 style={{ background: "oklch(var(--canvas))", boxShadow: "-40px 0 80px oklch(var(--text) / 0.1)" }}>
 
                 <div className="flex items-center justify-between pb-8 border-b" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
                   <div className="space-y-1">
                     <p className="mc-label">Registry Log</p>
                     <h3 className="mc-display text-3xl tracking-tighter italic">{selectedEntry.date}</h3>
+                    {selectedEntry.count > 0 && (
+                      <p className="mc-label" style={{ color: "oklch(var(--primary))" }}>
+                        {selectedEntry.count} {trendMode === 'github' ? 'commit' : 'cycle'}{selectedEntry.count !== 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
                   <button onClick={closeDrawer}
                     aria-label="Close log drawer"
@@ -278,7 +315,7 @@ const ProfileScreen = () => {
                           <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
                           <span>{c.sha}</span>
                           <span style={{ color: "oklch(var(--text) / 0.2)" }}>·</span>
-                          <span>{new Date(c.date.endsWith('Z') ? c.date : c.date + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>{parseUTC(c.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </div>
                     </a>
@@ -292,7 +329,7 @@ const ProfileScreen = () => {
                             {s.duration}m focus
                           </span>
                         </div>
-                        <span className="mc-label">{new Date(s.completed_at.endsWith('Z') ? s.completed_at : s.completed_at + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="mc-label">{parseUTC(s.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       {s.intent && <p className="mc-body text-sm pl-7" style={{ color: "oklch(var(--text-muted))" }}>{s.intent}</p>}
                       {s.repo_name && <p className="mc-label pl-7" style={{ color: "oklch(var(--primary) / 0.8)" }}>{s.repo_name}</p>}
@@ -303,6 +340,67 @@ const ProfileScreen = () => {
             </>
           )}
         </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Edit profile panel */}
+      {editOpen && createPortal(
+        <>
+          <div className="fixed inset-0 z-[100] backdrop-blur-sm" style={{ background: "oklch(var(--text) / 0.35)" }} onClick={() => setEditOpen(false)} />
+          <div className="fixed top-0 right-0 h-screen w-full max-w-sm z-[101] overflow-y-auto p-8 space-y-8"
+            style={{ background: "oklch(var(--canvas))", boxShadow: "-40px 0 80px oklch(var(--text) / 0.1)" }}>
+            <div className="flex items-center justify-between">
+              <h2 className="mc-display text-2xl">Edit profile</h2>
+              <button onClick={() => setEditOpen(false)} className="p-2 rounded-full hover:bg-[oklch(var(--text)/0.05)] transition-colors">
+                {React.createElement(X, { className: "w-4 h-4" })}
+              </button>
+            </div>
+
+            {/* Avatar preview */}
+            <div className="flex items-center gap-4">
+              <img src={avatarUrl(profile?.email || 'default', editForm.avatarStyle)} alt="Preview"
+                className="w-16 h-16 rounded-full border-2" style={{ borderColor: "oklch(var(--text) / 0.08)" }} />
+              <div className="space-y-1">
+                <p className="mc-label">Avatar style</p>
+                <div className="flex gap-2 flex-wrap">
+                  {['thumbs', 'avataaars', 'bottts', 'lorelei', 'micah'].map(s => (
+                    <button key={s} onClick={() => setEditForm(f => ({ ...f, avatarStyle: s }))}
+                      className="px-3 py-1 rounded-full mc-body text-[10px] font-bold uppercase tracking-widest transition-all"
+                      style={editForm.avatarStyle === s
+                        ? { background: "oklch(var(--text))", color: "oklch(var(--canvas))" }
+                        : { background: "oklch(var(--surface))", color: "oklch(var(--text) / 0.5)" }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="edit-name" className="mc-label">Display name</label>
+                <input id="edit-name" type="text" value={editForm.displayName}
+                  onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))}
+                  placeholder={user.email?.split('@')[0] || 'Operator'}
+                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none border"
+                  style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-bio" className="mc-label">Bio</label>
+                <textarea id="edit-bio" rows={3} value={editForm.bio}
+                  onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))}
+                  placeholder="A short bio shown on your public profile…"
+                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none border resize-none"
+                  style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
+              </div>
+              <button type="submit"
+                className="w-full py-3.5 rounded-full mc-body text-sm font-bold uppercase tracking-widest transition-all hover:scale-[1.02]"
+                style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
+                Save changes
+              </button>
+            </form>
+          </div>
+        </>,
         document.body
       )}
     </div>

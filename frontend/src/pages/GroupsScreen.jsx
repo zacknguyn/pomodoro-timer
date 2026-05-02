@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Users, Github, Archive, ArrowRight } from "lucide-react";
-import { groupApi } from "@/lib/api";
+import { groupApi, settingsApi } from "@/lib/api";
+import { toast } from "sonner";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import Skeleton from "@/components/Skeleton";
+import EmptyState from "@/components/EmptyState";
 
 const TABS = ["active", "archived", "all"];
 
@@ -13,6 +15,22 @@ const GroupsScreen = () => {
   const [tab, setTab] = useState("active");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+
+  useEffect(() => {
+    settingsApi.get().then(s => setGithubConnected(!!s.githubConnected)).catch(() => {});
+  }, []);
+
+  const handleCreateClick = () => {
+    if (!githubConnected) {
+      toast.error('GitHub not connected', {
+        description: 'Go to Settings → GitHub tab to connect.',
+        action: { label: 'Settings', onClick: () => window.location.href = '/settings' },
+      });
+      return;
+    }
+    setShowCreate(true);
+  };
 
   const load = useCallback(() => {
     groupApi.list(tab === "all" ? undefined : tab)
@@ -37,7 +55,7 @@ const GroupsScreen = () => {
           <p className="mc-label">Collaborative Clusters</p>
           <h1 className="mc-display text-5xl sm:text-6xl leading-[1.05] -tracking-[0.03em]">Groups</h1>
         </div>
-        <button onClick={() => setShowCreate(true)}
+        <button onClick={handleCreateClick}
           className="flex items-center gap-2.5 px-6 py-3.5 rounded-full mc-body text-sm font-bold uppercase tracking-widest transition-all active:scale-95"
           style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
           {React.createElement(Plus, { className: "w-4 h-4" })}
@@ -73,13 +91,10 @@ const GroupsScreen = () => {
           {Array(3).fill(0).map((_, i) => <Skeleton key={i} style={{ height: "96px" }} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-24 text-center border-2 border-dashed rounded-[32px]"
-          style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
-          <p className="text-5xl mb-4" style={{ color: "oklch(var(--text) / 0.1)" }}>∅</p>
-          <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text-muted))" }}>
-            {search ? "No groups match your search." : tab === "archived" ? "No archived groups." : "No groups yet — create one to get started."}
-          </p>
-        </div>
+        <EmptyState icon={Users}
+          title={search ? "No matches" : tab === "archived" ? "No archived groups" : "No groups yet"}
+          body={search ? "Try a different search term." : tab === "archived" ? "Archived groups will appear here." : "Create a group to collaborate with your repo team."}
+          action={!search && tab !== "archived" ? { label: "Create a group", onClick: handleCreateClick } : undefined} />
       ) : (
         <div className="space-y-3">
           {filtered.map(g => <GroupCard key={g.id} group={g} />)}

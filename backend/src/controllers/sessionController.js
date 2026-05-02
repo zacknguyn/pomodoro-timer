@@ -23,13 +23,32 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/export', (req, res) => {
+  const tzOffset = parseInt(req.query.tz) || 0; // minutes offset from UTC
+  const sessions = sessionRepository.findByUserId(req.user.userId);
+  const toLocal = (utc) => {
+    const d = new Date(new Date(utc).getTime() + tzOffset * 60000);
+    return d.toISOString().replace('T', ' ').slice(0, 19);
+  };
+  const rows = [
+    ['id', 'mode', 'duration_minutes', 'intent', 'repo', 'completed_at_local'],
+    ...sessions.map(s => [s.id, s.mode, s.duration, s.intent || '', s.repo_name || '', toLocal(s.completed_at)]),
+  ];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="pomogit-sessions.csv"');
+  res.send(csv);
+});
+
 router.get('/stats', (req, res) => {
-  const stats = sessionRepository.getStats(req.user.userId);
+  const tz = parseInt(req.query.tz) || 0;
+  const stats = sessionRepository.getStats(req.user.userId, tz);
   res.json(stats);
 });
 
 router.get('/heatmap', (req, res) => {
-  res.json(sessionRepository.getHeatmap(req.user.userId));
+  const tz = parseInt(req.query.tz) || 0;
+  res.json(sessionRepository.getHeatmap(req.user.userId, tz));
 });
 
 router.get('/', async (req, res) => {
@@ -38,6 +57,11 @@ router.get('/', async (req, res) => {
     return res.json(sessionRepository.findByDate(req.user.userId, date));
   }
   res.json(sessionRepository.findByUserId(req.user.userId));
+});
+
+router.delete('/:id', (req, res) => {
+  sessionRepository.delete(req.params.id, req.user.userId);
+  res.status(204).end();
 });
 
 export default router;

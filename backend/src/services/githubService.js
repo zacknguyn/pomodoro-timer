@@ -55,6 +55,7 @@ export class GithubService {
         sha: c.sha,
         message: c.commit.message,
         author: c.commit.author.name,
+        authorLogin: c.author?.login || null,
         date: c.commit.author.date
       }));
     } catch (error) {
