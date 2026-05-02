@@ -9,27 +9,25 @@ router.use(authMiddleware);
 const settingsSchema = z.object({
   pomodoro: z.number().min(1),
   shortBreak: z.number().min(1),
-  longBreak: z.number().min(1)
+  longBreak: z.number().min(1),
 });
 
 router.get('/', async (req, res) => {
-  const settings = settingsRepository.findByUserId(req.user.userId);
-  res.json(settings);
+  res.json(await settingsRepository.findByUserId(req.user.userId));
 });
 
 router.patch('/', async (req, res) => {
   try {
     const data = settingsSchema.partial().parse(req.body);
-    const current = settingsRepository.findByUserId(req.user.userId);
-    const updated = settingsRepository.update(req.user.userId, { ...current, ...data });
-    res.json(updated);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    const current = await settingsRepository.findByUserId(req.user.userId);
+    res.json(await settingsRepository.update(req.user.userId, { ...current, ...data }));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 
-router.delete('/github', (req, res) => {
-  settingsRepository.clearGithub(req.user.userId);
+router.delete('/github', async (req, res) => {
+  await settingsRepository.clearGithub(req.user.userId);
   res.json({ success: true });
 });
 

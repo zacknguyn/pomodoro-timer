@@ -58,7 +58,7 @@ h1, h2, h3, .mc-display {
 
 .mc-label {
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -75,7 +75,7 @@ h1, h2, h3, .mc-display {
 
 .mc-btn-primary {
   background: oklch(var(--primary));
-  color: white;
+  color: oklch(var(--canvas));
   font-family: var(--font-body);
   font-weight: 600;
   padding: 0.875rem 2rem;
@@ -168,4 +168,11 @@ h1, h2, h3, .mc-display {
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Global focus-visible ring — restores keyboard nav for all interactive elements */
+:focus-visible {
+  outline: 2px solid oklch(var(--primary) / 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

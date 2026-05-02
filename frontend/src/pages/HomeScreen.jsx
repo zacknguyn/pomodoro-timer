@@ -49,13 +49,13 @@ const Dashboard = () => {
   }, { scope: containerRef });
 
   return (
-    <div className="space-y-16 pb-20 px-8 pt-8" ref={containerRef}>
+    <div className="space-y-16 pb-20 px-4 sm:px-8 pt-8" ref={containerRef}>
 
       {/* Hero */}
       <section className="stagger-item mc-stagger-item space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-3">
-            <h1 className="mc-display text-6xl sm:text-7xl leading-[1.0] -tracking-[0.035em]">
+            <h1 className="mc-display text-5xl sm:text-6xl lg:text-7xl leading-[1.0] -tracking-[0.035em]">
               Welcome back,<br />{displayName}.
             </h1>
             <p className="mc-body text-base max-w-md" style={{ color: "oklch(var(--text) / 0.45)" }}>
@@ -64,7 +64,7 @@ const Dashboard = () => {
                 : "No sessions yet. Start your first focus cycle."}
             </p>
           </div>
-          <Link to="/pomodoro"
+          <Link to="/app/pomodoro"
             className="mc-pill gap-3 py-4 px-8 w-fit group active:scale-95"
             style={{
               background: "oklch(var(--text))",
@@ -95,8 +95,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="lg:col-span-3 flex flex-col justify-center gap-0 divide-y"
-          style={{ "--tw-divide-opacity": 1, borderColor: "oklch(var(--text) / 0.06)" }}>
+        <div className="lg:col-span-3 flex flex-col justify-center gap-0 divide-y border-b lg:border-b-0 lg:border-r"
+          style={{ borderColor: "oklch(var(--text) / 0.06)", "--tw-divide-color": "oklch(var(--text) / 0.06)" }}>
           <div className="py-5">
             <p className="mc-label mb-1">Sessions</p>
             <div className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
@@ -129,7 +129,7 @@ const Dashboard = () => {
                 </div>
                 {editingGoal ? (
                   <input type="number" min="1" max="20" defaultValue={dailyGoal} autoFocus
-                    className="mt-1 w-16 px-2 py-0.5 rounded-lg mc-body text-xs outline-none border"
+                    className="mt-1 w-16 px-2 py-0.5 rounded-lg mc-body text-xs outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border"
                     style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.1)", color: "oklch(var(--text))" }}
                     onBlur={e => { const v = Math.max(1, parseInt(e.target.value) || 4); setDailyGoal(v); localStorage.setItem('daily_goal', v); setEditingGoal(false); }}
                     onKeyDown={e => e.key === 'Enter' && e.target.blur()} />
@@ -176,7 +176,7 @@ const Dashboard = () => {
 
       {/* Project + Log */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <EditorialCard glow className="lg:col-span-5 space-y-8 stagger-item mc-stagger-item">
+        <EditorialCard glow className="lg:col-span-5 flex flex-col justify-between gap-8 stagger-item mc-stagger-item" style={{ minHeight: "320px" }}>
           <div className="space-y-3">
             <div className="flex items-center gap-2.5">
               {React.createElement(Github, { className: "w-4 h-4", style: { color: "oklch(var(--primary))" } })}
@@ -204,7 +204,7 @@ const Dashboard = () => {
               </p>
             </div>
           )}
-          <Link to="/pomodoro" className="mc-pill w-full py-3.5 text-sm font-bold shadow-lg text-center block"
+          <Link to="/app/pomodoro" className="mc-pill w-full py-3.5 text-sm font-bold shadow-lg text-center block mt-auto"
             style={{ background: "oklch(var(--canvas))", color: "oklch(var(--text))" }}>
             Go to Timer
           </Link>
@@ -219,7 +219,7 @@ const Dashboard = () => {
               </div>
             }
             right={
-              <Link to="/sessions" className="mc-body text-xs font-bold pb-0.5 transition-opacity hover:opacity-70"
+              <Link to="/app/sessions" className="mc-body text-xs font-bold pb-0.5 transition-opacity hover:opacity-70"
                 style={{ color: "oklch(var(--primary))", borderBottom: "1px solid oklch(var(--primary) / 0.3)" }}>
                 Archive
               </Link>
@@ -227,7 +227,7 @@ const Dashboard = () => {
           />
           <div className="space-y-6">
             {recentSessions.length === 0 ? (
-              <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text) / 0.4)" }}>No sessions yet. Start your first focus cycle.</p>
+              <p className="mc-body text-sm italic" style={{ color: "oklch(var(--text) / 0.4)" }}>No sessions yet. Complete your first focus cycle to see it here.</p>
             ) : recentSessions.map((s) => (
               <RegistryAnchor key={s.id}
                 target={s.repo_name || 'Focus session'}
@@ -246,25 +246,23 @@ const Dashboard = () => {
 };
 
 const RegistryAnchor = React.memo(({ protocol, target, time, status, intent, date }) => (
-  <Link to={`/sessions${date ? `?date=${date}` : ''}`} className="flex items-center justify-between group transition-all hover:translate-x-1.5 rounded-xl relative pl-3"
-    style={{ borderLeft: "2px solid transparent", transition: "transform 0.2s ease, border-color 0.2s ease" }}
-    onMouseEnter={e => e.currentTarget.style.borderLeftColor = "oklch(var(--primary) / 0.5)"}
-    onMouseLeave={e => e.currentTarget.style.borderLeftColor = "transparent"}>
-    <div className="flex items-center gap-6">
-      <span className="mc-display text-4xl" style={{ color: "oklch(var(--primary) / 0.15)" }}>/</span>
-      <div className="space-y-0.5">
-        <p className="mc-display text-lg" style={{ color: "oklch(var(--text))" }}>{target}</p>
-        <div className="flex items-center gap-3 mc-label">
+  <Link to={`/sessions${date ? `?date=${date}` : ''}`} className="flex items-center justify-between group transition-all rounded-xl relative pl-3 hover:translate-x-2 gap-2"
+    style={{ transition: "transform 0.2s ease" }}>
+    <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+      <span className="mc-display text-2xl sm:text-4xl flex-shrink-0" style={{ color: "oklch(var(--primary) / 0.15)" }}>/</span>
+      <div className="space-y-0.5 min-w-0">
+        <p className="mc-display text-base sm:text-lg truncate" style={{ color: "oklch(var(--text))" }}>{target}</p>
+        <div className="flex items-center gap-2 mc-label flex-wrap">
           <span>{protocol}</span>
-          <span className="w-1 h-1 rounded-full" style={{ background: "oklch(var(--text) / 0.1)" }} />
+          <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "oklch(var(--text) / 0.1)" }} />
           <span>{time}</span>
-          {intent && <><span className="w-1 h-1 rounded-full" style={{ background: "oklch(var(--text) / 0.1)" }} /><span className="italic truncate max-w-[160px]">{intent}</span></>}
+          {intent && <span className="italic truncate max-w-[120px] sm:max-w-[160px]">{intent}</span>}
         </div>
       </div>
     </div>
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-2 sm:gap-5 flex-shrink-0">
       <StatusBadge variant={status === "SUCCESS" ? "success" : "muted"}>{status}</StatusBadge>
-      {React.createElement(ArrowRight, { className: "w-4 h-4 transition-all group-hover:translate-x-0.5", style: { color: "oklch(var(--text) / 0.12)" } })}
+      {React.createElement(ArrowRight, { className: "w-4 h-4 transition-all group-hover:translate-x-0.5 hidden sm:block", style: { color: "oklch(var(--text) / 0.12)" } })}
     </div>
   </Link>
 ));

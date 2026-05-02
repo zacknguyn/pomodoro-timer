@@ -1,98 +1,103 @@
-import db from '../lib/db.js';
-import { randomUUID } from 'node:crypto';
+import pool from '../lib/db.js';
 
 class GroupRepository {
-  create(ownerId, name, repoFullName) {
-    const id = randomUUID();
-    db.prepare(`
-      INSERT INTO groups (id, name, repo_full_name, owner_id)
-      VALUES (?, ?, ?, ?)
-    `).run(id, name, repoFullName, ownerId);
-    this.addMember(id, ownerId, 'owner');
-    return this.findById(id);
+  async create(ownerId, name, repoFullName) {
+    const { rows } = await pool.query(
+      'INSERT INTO groups (name, repo_full_name, owner_id) VALUES ($1, $2, $3) RETURNING *',
+      [name, repoFullName, ownerId]
+    );
+    const group = rows[0];
+    await this.addMember(group.id, ownerId, 'owner');
+    return group;
   }
 
-  findById(id) {
-    return db.prepare('SELECT * FROM groups WHERE id = ?').get(id);
+  async findById(id) {
+    const { rows } = await pool.query('SELECT * FROM groups WHERE id = $1', [id]);
+    return rows[0] ?? null;
   }
 
-  findByRepo(repoFullName) {
-    return db.prepare('SELECT * FROM groups WHERE repo_full_name = ?').get(repoFullName);
+  async findByRepo(repoFullName) {
+    const { rows } = await pool.query('SELECT * FROM groups WHERE repo_full_name = $1', [repoFullName]);
+    return rows[0] ?? null;
   }
 
-  findByUser(userId, status = null) {
+  async findByUser(userId, status = null) {
     const query = status
-      ? `SELECT g.* FROM groups g
-         JOIN group_members gm ON g.id = gm.group_id
-         WHERE gm.user_id = ? AND g.status = ?
-         ORDER BY g.created_at DESC`
-      : `SELECT g.* FROM groups g
-         JOIN group_members gm ON g.id = gm.group_id
-         WHERE gm.user_id = ?
-         ORDER BY g.created_at DESC`;
-    return status
-      ? db.prepare(query).all(userId, status)
-      : db.prepare(query).all(userId);
+      ? `SELECT g.* FROM groups g JOIN group_members gm ON g.id = gm.group_id
+         WHERE gm.user_id = $1 AND g.status = $2 ORDER BY g.created_at DESC`
+      : `SELECT g.* FROM groups g JOIN group_members gm ON g.id = gm.group_id
+         WHERE gm.user_id = $1 ORDER BY g.created_at DESC`;
+    const params = status ? [userId, status] : [userId];
+    const { rows } = await pool.query(query, params);
+    return rows;
   }
 
-  addMember(groupId, userId, role = 'member') {
-    db.prepare(`
-      INSERT OR IGNORE INTO group_members (group_id, user_id, role)
-      VALUES (?, ?, ?)
-    `).run(groupId, userId, role);
+  async addMember(groupId, userId, role = 'member') {
+    await pool.query(
+      `INSERT INTO group_members (group_id, user_id, role) VALUES ($1, $2, $3)
+       ON CONFLICT (group_id, user_id) DO NOTHING`,
+      [groupId, userId, role]
+    );
   }
 
-  removeMember(groupId, userId) {
-    db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(groupId, userId);
+  async removeMember(groupId, userId) {
+    await pool.query('DELETE FROM group_members WHERE group_id = $1 AND user_id = $2', [groupId, userId]);
   }
 
-  getMember(groupId, userId) {
-    return db.prepare('SELECT * FROM group_members WHERE group_id = ? AND user_id = ?').get(groupId, userId);
+  async getMember(groupId, userId) {
+    const { rows } = await pool.query(
+      'SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, userId]
+    );
+    return rows[0] ?? null;
   }
 
-  getMembers(groupId) {
+  async getMembers(groupId) {
     const today = new Date().toISOString().slice(0, 10);
-    return db.prepare(`
-      SELECT u.id, u.email, u.display_name, u.avatar_style,
-             gm.role, gm.joined_at,
-             s2.github_username,
-             COUNT(s.id) as sessions_today,
-             MAX(s.completed_at) as last_session_at
-      FROM group_members gm
-      JOIN users u ON u.id = gm.user_id
-      LEFT JOIN settings s2 ON s2.user_id = u.id
-      LEFT JOIN sessions s ON s.user_id = u.id AND date(s.completed_at) = ? AND s.mode = 'pomodoro'
-      WHERE gm.group_id = ?
-      GROUP BY u.id
-      ORDER BY gm.role DESC, u.email
-    `).all(today, groupId).map(m => ({
+    const { rows } = await pool.query(
+      `SELECT u.id, u.email, u.display_name, u.avatar_style,
+              gm.role, gm.joined_at,
+              s2.github_username,
+              COUNT(s.id) AS sessions_today,
+              MAX(s.completed_at) AS last_session_at
+       FROM group_members gm
+       JOIN users u ON u.id = gm.user_id
+       LEFT JOIN settings s2 ON s2.user_id = u.id
+       LEFT JOIN sessions s ON s.user_id = u.id
+         AND s.completed_at::date = $1 AND s.mode = 'pomodoro'
+       WHERE gm.group_id = $2
+       GROUP BY u.id, u.email, u.display_name, u.avatar_style, gm.role, gm.joined_at, s2.github_username
+       ORDER BY gm.role DESC, u.email`,
+      [today, groupId]
+    );
+    return rows.map(m => ({
       ...m,
       name: m.display_name || m.email.split('@')[0],
       avatarStyle: m.avatar_style || 'thumbs',
+      sessions_today: parseInt(m.sessions_today),
       isActive: m.last_session_at
         ? (Date.now() - new Date(m.last_session_at)) / 60000 < 30
         : false,
     }));
   }
 
-  setStatus(groupId, status) {
+  async setStatus(groupId, status) {
     const archivedAt = status === 'archived' ? new Date().toISOString() : null;
-    db.prepare('UPDATE groups SET status = ?, archived_at = ? WHERE id = ?')
-      .run(status, archivedAt, groupId);
+    await pool.query('UPDATE groups SET status = $1, archived_at = $2 WHERE id = $3', [status, archivedAt, groupId]);
   }
 
-  delete(groupId) {
-    db.prepare('DELETE FROM groups WHERE id = ?').run(groupId);
+  async delete(groupId) {
+    await pool.query('DELETE FROM groups WHERE id = $1', [groupId]);
   }
 
-  // Find all active groups whose repo matches any of the given repo full_names
-  findActiveGroupsForRepos(repoFullNames) {
+  async findActiveGroupsForRepos(repoFullNames) {
     if (!repoFullNames.length) return [];
-    const placeholders = repoFullNames.map(() => '?').join(',');
-    return db.prepare(`
-      SELECT * FROM groups
-      WHERE repo_full_name IN (${placeholders}) AND status = 'active'
-    `).all(...repoFullNames);
+    const placeholders = repoFullNames.map((_, i) => `$${i + 1}`).join(',');
+    const { rows } = await pool.query(
+      `SELECT * FROM groups WHERE repo_full_name IN (${placeholders}) AND status = 'active'`,
+      repoFullNames
+    );
+    return rows;
   }
 }
 

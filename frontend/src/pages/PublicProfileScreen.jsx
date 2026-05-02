@@ -69,11 +69,11 @@ const PublicHeatmap = ({ heatmap }) => {
   return (
     <div className="space-y-3">
       <p className="mc-label">Focus activity</p>
-      <div className="hidden sm:block overflow-x-auto pb-2">
+      <div className="hidden sm:block">
         <div ref={gridRef} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}
-          style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gridAutoFlow: "column", gridAutoColumns: "12px", gap: "3px", overflow: "visible" }}>
+          style={{ display: "grid", gridTemplateRows: "repeat(7, 1fr)", gridAutoFlow: "column", gridAutoColumns: "1fr", gap: "3px", overflow: "visible", aspectRatio: "53 / 7" }}>
           {data.map((val, i) => (
-            <div key={i} data-cell={i} className="aspect-square rounded-[2px]"
+            <div key={i} data-cell={i} className="rounded-[2px]"
               style={{ background: LEVELS[val] ?? LEVELS[0], transformOrigin: "center",
                 transition: REDUCED_MOTION ? "none" : "transform 0.05s linear, filter 0.05s linear",
                 willChange: "transform, filter" }} />
@@ -114,14 +114,14 @@ const PublicProfileScreen = () => {
   }, [username]);
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto px-8 pt-16 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-8 pt-16 space-y-8">
       <Skeleton style={{ height: "120px" }} />
       <Skeleton style={{ height: "160px" }} />
     </div>
   );
 
   if (notFound) return (
-    <div className="max-w-2xl mx-auto px-8 pt-24 text-center space-y-4">
+    <div className="max-w-2xl mx-auto px-4 sm:px-8 pt-24 text-center space-y-4">
       <p className="mc-display text-6xl" style={{ color: "oklch(var(--text) / 0.08)" }}>404</p>
       <p className="mc-body" style={{ color: "oklch(var(--text-muted))" }}>No user found for <strong>@{username}</strong></p>
       <Link to="/" className="mc-label hover:opacity-70 transition-opacity">← Back home</Link>
@@ -134,7 +134,7 @@ const PublicProfileScreen = () => {
 
   return (
     <div className="min-h-screen" style={{ background: "oklch(var(--canvas))" }}>
-      <div className="max-w-2xl mx-auto px-8 py-16 space-y-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-16 space-y-12">
 
         {/* Back */}
         <Link to="/" className="flex items-center gap-2 mc-label hover:opacity-70 transition-opacity w-fit">

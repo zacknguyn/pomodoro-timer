@@ -14,8 +14,8 @@ const MODES = { pomodoro: 'Focus', shortBreak: 'Short', longBreak: 'Long' };
 const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Split time string into individual digit/colon spans for morphing
-const TimerDisplay = ({ value, cardRef, reducedMotion }) => {
-  const chars = value.split(''); // ['0','5',':','2','4']
+const TimerDisplay = ({ value, reducedMotion }) => {
+  const chars = value.split('');
   const prevRef = useRef(chars);
 
   useEffect(() => {
@@ -25,30 +25,20 @@ const TimerDisplay = ({ value, cardRef, reducedMotion }) => {
         const el = document.getElementById(`digit-${i}`);
         if (!el) return;
         gsap.fromTo(el,
-          { y: -18, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.22, ease: "power3.out" }
+          { y: -14, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.2, ease: "power3.out" }
         );
       }
     });
-    // Tick pulse on card
-    if (cardRef.current) {
-      gsap.fromTo(cardRef.current,
-        { scale: 1.0025 },
-        { scale: 1, duration: 0.18, ease: "power2.out" }
-      );
-    }
     prevRef.current = chars;
-  });
+  }, [value]);
 
   return (
-    <div className="mc-display tabular-nums leading-none tracking-tighter flex items-baseline overflow-hidden"
+    <div className="mc-display tabular-nums leading-none tracking-tighter flex items-baseline"
       style={{ fontSize: "clamp(5rem, 18vw, 10rem)", color: "oklch(var(--text))" }}>
       {chars.map((ch, i) => (
-        <span
-          key={i}
-          id={`digit-${i}`}
-          style={{ display: "inline-block", minWidth: ch === ':' ? "0.3em" : "0.6em", textAlign: "center" }}
-        >
+        <span key={i} id={`digit-${i}`}
+          style={{ display: "inline-block", minWidth: ch === ':' ? "0.3em" : "0.6em", textAlign: "center" }}>
           {ch}
         </span>
       ))}
@@ -60,6 +50,7 @@ const PomodoroScreen = () => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
   const playBtnRef = useRef(null);
+  const headlineRef = useRef(null);
 
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState(() => {
@@ -86,6 +77,7 @@ const PomodoroScreen = () => {
   const [timeLeft, setTimeLeft] = useState(settings.pomodoro * 60);
   const [isActive, setIsActive] = useState(false);
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [pendingSession, setPendingSession] = useState(null); // { duration, intent, repoName }
   const hasStarted = useRef(false);
 
   // Request notification permission with context
@@ -130,18 +122,21 @@ const PomodoroScreen = () => {
       });
     } catch { /* audio not available */ }
   };
-  const [focusIntent, setFocusIntent] = useState("");
-  const focusIntentRef = useRef("");
+  const [focusIntent, setFocusIntent] = useState(() => localStorage.getItem('last_intent') || "");
+  const focusIntentRef = useRef(localStorage.getItem('last_intent') || "");
   const selectedRepoRef = useRef(null);
 
   // Keep refs in sync
-  useEffect(() => { focusIntentRef.current = focusIntent; }, [focusIntent]);
+  useEffect(() => {
+    focusIntentRef.current = focusIntent;
+    localStorage.setItem('last_intent', focusIntent);
+  }, [focusIntent]);
   useEffect(() => { selectedRepoRef.current = selectedRepo; }, [selectedRepo]);
 
   useEffect(() => {
     sessionApi.list().then(sessions => {
       const last = sessions.find(s => s.intent);
-      if (last?.intent) setFocusIntent(last.intent);
+      if (last?.intent && !localStorage.getItem('last_intent')) setFocusIntent(last.intent);
     }).catch(() => {});
   }, []);
 
@@ -149,12 +144,7 @@ const PomodoroScreen = () => {
     if (mode === "pomodoro") {
       const duration = elapsedMinutes ?? settings.pomodoro;
       if (duration > 0) {
-        sessionApi.create({
-          mode: "pomodoro",
-          duration,
-          intent: focusIntentRef.current,
-          repoName: selectedRepoRef.current?.full_name
-        }).catch(console.error);
+        setPendingSession({ duration, intent: focusIntentRef.current, repoName: selectedRepoRef.current?.full_name });
       }
       setSessionsCompleted(prev => prev + 1);
       chime();
@@ -199,18 +189,38 @@ const PomodoroScreen = () => {
     hasStarted.current = false;
     setMode(newMode);
     setTimeLeft(settings[newMode] * 60);
+    if (!REDUCED_MOTION && headlineRef.current) {
+      gsap.fromTo(headlineRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }
+      );
+    }
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
     if (!isActive) hasStarted.current = true;
     if (!REDUCED_MOTION && playBtnRef.current) {
       gsap.fromTo(playBtnRef.current,
-        { scale: 0.82, rotate: isActive ? -12 : 12 },
-        { scale: 1, rotate: 0, duration: 0.45, ease: "back.out(2.5)" }
+        { scale: 0.88, rotate: isActive ? -8 : 8 },
+        { scale: 1, rotate: 0, duration: 0.35, ease: "power3.out" }
       );
     }
     setIsActive(a => !a);
-  };
+  }, [isActive]);
+
+  // Keyboard shortcuts: Space = play/pause, R = reset, 1/2/3 = mode
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (e.code === 'Space') { e.preventDefault(); handlePlayPause(); }
+      else if (e.key === 'r' || e.key === 'R') setTimeLeft(settings[mode] * 60);
+      else if (e.key === '1') changeMode('pomodoro');
+      else if (e.key === '2') changeMode('shortBreak');
+      else if (e.key === '3') changeMode('longBreak');
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handlePlayPause, settings, mode]);
 
   useEffect(() => {
     githubApi.getRepos()
@@ -245,19 +255,22 @@ const PomodoroScreen = () => {
   }, { scope: containerRef });
 
   return (
-    <div ref={containerRef} className="max-w-5xl mx-auto pb-32 space-y-16 px-6 pt-8">
+    <div ref={containerRef} className="max-w-5xl mx-auto pb-32 space-y-10 px-4 sm:px-6 pt-8">
 
       {/* Header */}
       <header className="reveal space-y-4">
         <div className="flex items-center gap-3">
           <span className="px-3 py-1 rounded-full mc-body text-[10px] font-bold uppercase tracking-widest"
-            style={{ background: "oklch(var(--primary) / 0.1)", color: "oklch(var(--primary))" }}>
+            style={{
+              background: mode === 'pomodoro' ? "oklch(var(--primary) / 0.1)" : "oklch(var(--accent) / 0.1)",
+              color: mode === 'pomodoro' ? "oklch(var(--primary))" : "oklch(var(--accent))",
+            }}>
             {mode === 'pomodoro' ? 'Focus Session' : 'Recovery Period'}
           </span>
           <span className="mc-label">Session {(sessionsCompleted % 4) + 1} of 4</span>
         </div>
-        <h1 className="mc-display text-5xl lg:text-7xl tracking-tight leading-none">
-          Stay <span className="italic">present.</span>
+        <h1 ref={headlineRef} className="mc-display text-4xl sm:text-5xl lg:text-7xl tracking-tight leading-none">
+          {mode === 'pomodoro' ? <>Stay <span className="italic">present.</span></> : mode === 'shortBreak' ? <>Rest <span className="italic">well.</span></> : <>Breathe <span className="italic">deeply.</span></>}
         </h1>
       </header>
 
@@ -266,26 +279,33 @@ const PomodoroScreen = () => {
 
         {/* Timer */}
         <div className="lg:col-span-7 reveal">
-          <div ref={cardRef} className="mc-card flex flex-col items-center py-16 space-y-10 border"
+          <div ref={cardRef} className="mc-card flex flex-col items-center py-10 sm:py-16 space-y-8 sm:space-y-10 border"
             style={{
               borderColor: isActive ? "oklch(var(--primary) / 0.25)" : "oklch(var(--text) / 0.05)",
               boxShadow: isActive ? "0 0 0 4px oklch(var(--primary) / 0.07), 0 20px 60px oklch(var(--primary) / 0.08)" : "none",
               transition: "border-color 0.6s ease, box-shadow 0.6s ease",
-              willChange: "transform",
             }}>
 
             {/* Progress bar */}
             <div className="w-full h-0.5 rounded-full overflow-hidden" style={{ background: "oklch(var(--text) / 0.05)" }}>
-              <div className="h-full rounded-full transition-all duration-1000"
-                style={{ width: `${progress * 100}%`, background: "oklch(var(--primary))" }} />
+              <div className="h-full rounded-full origin-left transition-transform duration-1000"
+                style={{ transform: `scaleX(${progress})`, background: "oklch(var(--primary))" }} />
             </div>
 
             <TimerDisplay
               value={formatTime(timeLeft)}
-              cardRef={cardRef}
               reducedMotion={REDUCED_MOTION}
             />
 
+            {pendingSession ? (
+              <InlineNoteInput session={pendingSession} onSave={(note) => {
+                sessionApi.create({ mode: 'pomodoro', ...pendingSession, note }).catch(console.error);
+                setPendingSession(null);
+              }} onSkip={() => {
+                sessionApi.create({ mode: 'pomodoro', ...pendingSession }).catch(console.error);
+                setPendingSession(null);
+              }} />
+            ) : (
             <div className="flex items-center gap-6">
               <button onClick={() => setTimeLeft(settings[mode] * 60)}
                 aria-label="Reset timer"
@@ -313,6 +333,7 @@ const PomodoroScreen = () => {
                 {React.createElement(SkipForward, { className: "w-5 h-5" })}
               </button>
             </div>
+            )}
 
             <div className="flex gap-1.5 w-full">
               {Object.entries(MODES).map(([m, label]) => (
@@ -325,11 +346,14 @@ const PomodoroScreen = () => {
                 </button>
               ))}
             </div>
+            <p className="mc-label" style={{ color: "oklch(var(--text) / 0.2)" }}>
+              Space · R · 1 / 2 / 3
+            </p>
           </div>
         </div>
 
         {/* Sidebar */}
-        <div className="lg:col-span-5 space-y-10 reveal">
+        <div className="lg:col-span-5 space-y-10 reveal min-w-0">
           <section className="space-y-4">
             <div className="flex items-center gap-2.5">
               {React.createElement(Target, { className: "w-3.5 h-3.5", style: { color: "oklch(var(--primary))" } })}
@@ -339,7 +363,7 @@ const PomodoroScreen = () => {
               id="focus-intent"
               value={focusIntent}
               onChange={(e) => setFocusIntent(e.target.value)}
-              className="w-full bg-transparent border-none mc-display text-2xl resize-none focus:outline-none italic"
+              className="w-full bg-transparent border-none mc-display text-2xl resize-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] rounded-lg italic"
               style={{ color: "oklch(var(--text))" }}
               rows={2}
               placeholder="What are you working on?"
@@ -358,7 +382,7 @@ const PomodoroScreen = () => {
               }
               right={
                 !githubConnected && (
-                  <Link to="/settings" className="mc-label hover:opacity-70 transition-opacity"
+                  <Link to="/app/settings" className="mc-label hover:opacity-70 transition-opacity"
                     style={{ color: "oklch(var(--primary))" }}>Connect</Link>
                 )
               }
@@ -371,7 +395,7 @@ const PomodoroScreen = () => {
                 setSelectedRepo(repo);
                 if (repo) localStorage.setItem('last_repo', JSON.stringify(repo));
               }}
-              className="w-full rounded-2xl px-4 py-3 mc-body text-sm focus:outline-none appearance-none cursor-pointer border"
+              className="w-full rounded-2xl px-4 py-3 mc-body text-sm focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] appearance-none cursor-pointer border"
               style={{ background: "oklch(var(--canvas))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }}>
               <option value="">Select repository</option>
               {repos.map(r => <option key={r.id} value={r.full_name}>{r.name}</option>)}
@@ -392,6 +416,33 @@ const PomodoroScreen = () => {
             </div>
           </section>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const InlineNoteInput = ({ session, onSave, onSkip }) => {
+  const [note, setNote] = React.useState('');
+  return (
+    <div className="w-full space-y-3 py-2">
+      <p className="mc-label text-center" style={{ color: "oklch(var(--primary))" }}>
+        Session complete — {session.duration}m · Add a note?
+      </p>
+      <textarea
+        autoFocus rows={2} value={note} onChange={e => setNote(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); note.trim() ? onSave(note.trim()) : onSkip(); } if (e.key === 'Escape') onSkip(); }}
+        placeholder="What did you accomplish? (optional)"
+        className="w-full px-4 py-3 rounded-2xl mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border resize-none"
+        style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }}
+      />
+      <div className="flex items-center justify-between">
+        <button onClick={onSkip} className="mc-label hover:opacity-60 transition-opacity"
+          style={{ color: "oklch(var(--text-muted))" }}>Skip</button>
+        <button onClick={() => note.trim() ? onSave(note.trim()) : onSkip()}
+          className="px-5 py-2 rounded-full mc-body text-sm font-bold uppercase tracking-widest transition-all hover:scale-105"
+          style={{ background: "oklch(var(--text))", color: "oklch(var(--canvas))" }}>
+          Save
+        </button>
       </div>
     </div>
   );

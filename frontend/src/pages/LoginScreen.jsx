@@ -8,7 +8,7 @@ import { authApi, settingsApi } from '@/lib/api';
 const LoginScreen = () => {
   const container = useRef();
   const navigate = useNavigate();
-  if (localStorage.getItem('registry_token')) return <Navigate to="/" replace />;
+  if (localStorage.getItem('registry_token')) return <Navigate to="/app" replace />;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const LoginScreen = () => {
         const s = await settingsApi.get();
         if (s) localStorage.setItem('kernel_settings', JSON.stringify({ pomodoro: s.pomodoro, shortBreak: s.shortBreak, longBreak: s.longBreak }));
       } catch { /* settings sync optional */ }
-      navigate('/');
+      navigate('/app');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,7 +54,7 @@ const LoginScreen = () => {
         <div className="relative z-10 flex items-center gap-3 reveal">
           <div className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: "oklch(var(--primary))" }}>
-            {React.createElement(Github, { className: "w-5 h-5 text-white" })}
+            {React.createElement(Github, { className: "w-5 h-5", style: { color: "oklch(var(--canvas))" } })}
           </div>
           <span className="mc-display text-2xl tracking-tighter italic" style={{ color: "oklch(var(--canvas))" }}>
             Pomogit.

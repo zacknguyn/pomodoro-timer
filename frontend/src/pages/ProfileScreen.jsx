@@ -10,6 +10,8 @@ import { useProfile, avatarUrl } from "@/hooks/useProfile";
 import { parseUTC } from "@/lib/utils";
 import Skeleton from "@/components/Skeleton";
 
+const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const FOCUSABLE = 'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
 const useFocusTrap = (active, onClose) => {
@@ -50,6 +52,7 @@ const ProfileScreen = () => {
   const [stats, setStats] = useState({ totalSessions: 0, totalFocusMinutes: 0, currentStreak: 0, longestStreak: 0 });
   const [statsLoading, setStatsLoading] = useState(true);
   const containerRef = useRef(null);
+  const badgeRef = useRef(null);
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     await usersApi.updateMe({ displayName: editForm.displayName || null, bio: editForm.bio || null, avatarStyle: editForm.avatarStyle });
@@ -133,10 +136,13 @@ const ProfileScreen = () => {
   useGSAP(() => {
     gsap.set(".reveal", { opacity: 0, y: 24 });
     gsap.to(".reveal", { opacity: 1, y: 0, stagger: 0.1, duration: 1, ease: "power4.out" });
+    if (badgeRef.current && !REDUCED_MOTION) {
+      gsap.to(badgeRef.current, { y: -4, duration: 1.2, ease: "sine.inOut", repeat: -1, yoyo: true });
+    }
   }, { scope: containerRef });
 
   return (
-    <div className="space-y-20 pb-32 px-6 max-w-4xl mx-auto pt-8" ref={containerRef}>
+    <div className="space-y-20 pb-32 px-4 sm:px-6 max-w-4xl mx-auto pt-8" ref={containerRef}>
 
       {/* Hero */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center reveal">
@@ -146,8 +152,8 @@ const ProfileScreen = () => {
             <img src={avatar} alt={displayName}
               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
           </div>
-          <div className="absolute bottom-3 right-3 w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-lg animate-bounce"
-            style={{ background: "oklch(var(--primary))", borderColor: "oklch(var(--canvas))", color: "white" }}>
+          <div ref={badgeRef} className="absolute bottom-3 right-3 w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-lg"
+            style={{ background: "oklch(var(--primary))", borderColor: "oklch(var(--canvas))", color: "oklch(var(--canvas))" }}>
             {React.createElement(Zap, { className: "w-5 h-5 fill-current" })}
           </div>
         </div>
@@ -207,16 +213,17 @@ const ProfileScreen = () => {
             </div>
           </div>
           {/* Three compact stats */}
-          <div className="lg:col-span-7 grid grid-cols-3 pt-6 lg:pt-0 lg:pl-8 divide-x"
-            style={{ borderTop: "1px solid oklch(var(--text) / 0.06)", "--tw-divide-opacity": 1 }}>
+          <div className="lg:col-span-7 grid grid-cols-3 pt-6 lg:pt-0 lg:pl-8"
+            style={{ borderTop: "1px solid oklch(var(--text) / 0.06)" }}>
             {[
-              { label: "Sessions", value: statsLoading ? null : stats.totalSessions > 0 ? stats.totalSessions : "—" },
-              { label: "Streak", value: statsLoading ? null : stats.currentStreak > 0 ? `${stats.currentStreak}d` : "—" },
-              { label: "Best", value: statsLoading ? null : stats.longestStreak > 0 ? `${stats.longestStreak}d` : "—" },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col justify-center px-6 gap-1">
+              { label: "Sessions", value: statsLoading ? null : stats.totalSessions > 0 ? stats.totalSessions : "—", colored: stats.totalSessions > 0 },
+              { label: "Streak", value: statsLoading ? null : stats.currentStreak > 0 ? `${stats.currentStreak}d` : "—", colored: stats.currentStreak > 0 },
+              { label: "Best", value: statsLoading ? null : stats.longestStreak > 0 ? `${stats.longestStreak}d` : "—", colored: stats.longestStreak > 0 },
+            ].map(({ label, value, colored }, idx) => (
+              <div key={label} className="flex flex-col justify-center px-6 gap-1"
+                style={idx > 0 ? { borderLeft: "1px solid oklch(var(--text) / 0.06)" } : undefined}>
                 <p className="mc-label">{label}</p>
-                <div className="mc-display text-3xl" style={{ color: "oklch(var(--text))" }}>
+                <div className="mc-display text-3xl" style={{ color: colored ? "oklch(var(--primary))" : "oklch(var(--text))" }}>
                   {value === null ? <Skeleton style={{ width: "3rem", height: "2rem" }} /> : value}
                 </div>
               </div>
@@ -382,7 +389,7 @@ const ProfileScreen = () => {
                 <input id="edit-name" type="text" value={editForm.displayName}
                   onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))}
                   placeholder={user.email?.split('@')[0] || 'Operator'}
-                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none border"
+                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border"
                   style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
               </div>
               <div className="space-y-2">
@@ -390,7 +397,7 @@ const ProfileScreen = () => {
                 <textarea id="edit-bio" rows={3} value={editForm.bio}
                   onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))}
                   placeholder="A short bio shown on your public profile…"
-                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none border resize-none"
+                  className="w-full px-5 py-3 rounded-2xl mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border resize-none"
                   style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
               </div>
               <button type="submit"
@@ -411,7 +418,6 @@ const ProfileScreen = () => {
 
 
 // Module-level — safe to read during render, never changes after page load
-const REDUCED_MOTION = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches;
 
 const CELL_COLORS = {
@@ -483,7 +489,7 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
       const idx = parseInt(cell.dataset.cell, 10);
       const val = data[idx];
       const displayCount = counts?.[idx] ?? val;
-      const dateStr = dates?.[idx]
+      const dateStr = dates?.[idx] && dates[idx] !== ''
         ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
         : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
       setTooltip({ val: displayCount, x: e.clientX, y: e.clientY, date: dateStr });
@@ -503,7 +509,7 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
   // Touch: tap cell to show/dismiss tooltip
   const handleTouchCell = useCallback((val, idx) => {
     const displayCount = counts?.[idx] ?? val;
-    const dateStr = dates?.[idx]
+    const dateStr = dates?.[idx] && dates[idx] !== ''
       ? new Date(dates[idx] + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
       : (() => { const d = new Date(); d.setDate(d.getDate() - (363 - idx)); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })();
     setTooltip(prev => prev?.idx === idx ? null : { val: displayCount, idx, date: dateStr, touch: true });
@@ -533,32 +539,22 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
       {/* Desktop: full 52-week magnetic grid */}
       <div className="hidden sm:block" style={{ overflow: "visible" }}>
         {/* Month labels */}
-        <div style={{ display: "grid", gridTemplateColumns: "24px 1fr", marginBottom: "4px" }}>
-          <div />
-          <div style={{ display: "grid", gridTemplateRows: "12px", gridAutoFlow: "column", gridAutoColumns: "12px", gap: "3px", position: "relative", height: "14px" }}>
-            {monthLabels.map(({ col, label }) => (
-              <span key={label + col} className="mc-label absolute" style={{ left: `${col * 15}px`, fontSize: "9px", color: "oklch(var(--text-muted))", whiteSpace: "nowrap" }}>
-                {label}
-              </span>
-            ))}
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(53, 1fr)", gap: "3px", position: "relative", height: "14px", marginBottom: "4px" }}>
+          {monthLabels.map(({ col, label }) => (
+            <span key={label + col} className="mc-label absolute" style={{ left: `calc(${col} * (100% / 53))`, fontSize: "9px", color: "oklch(var(--text-muted))", whiteSpace: "nowrap" }}>
+              {label}
+            </span>
+          ))}
         </div>
-        {/* Grid with day labels */}
-        <div style={{ display: "grid", gridTemplateColumns: "24px 1fr", gap: "0" }}>
-          {/* Day labels */}
-          <div style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gap: "3px" }}>
-            {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (
-              <span key={i} className="mc-label flex items-center justify-end pr-1" style={{ fontSize: "9px", color: "oklch(var(--text-muted))", height: "12px" }}>{d}</span>
-            ))}
-          </div>
-          <div ref={gridRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{ display: "grid", gridTemplateRows: "repeat(7, 12px)", gridAutoFlow: "column", gridAutoColumns: "12px", gap: "3px", overflow: "visible" }}>
+        {/* Grid */}
+        <div ref={gridRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          style={{ display: "grid", gridTemplateRows: "repeat(7, 1fr)", gridAutoFlow: "column", gridAutoColumns: "1fr", gap: "3px", overflow: "visible", aspectRatio: "53 / 7" }}>
           {data.map((val, i) => (
             <div key={i} data-cell={i}
               onClick={() => onCellClick(val, i)}
-              className="aspect-square rounded-[2px] cursor-pointer"
+              className="rounded-[2px] cursor-pointer"
               style={{
                 background: colors[val] ?? colors[0],
                 transformOrigin: "center",
@@ -568,7 +564,6 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
             />
           ))}
           </div>
-        </div>
       </div>
       {/* Tooltip via portal — fixed viewport coords, never clipped by card */}
       {tooltip && !tooltip.touch && createPortal(
@@ -590,8 +585,9 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
       {/* Mobile: last 26 weeks, larger cells, tap tooltip */}
       <div className="sm:hidden space-y-3">
         <p className="mc-label">Last 6 months — tap a cell for details</p>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <div className="relative"
-          style={{ display: "grid", gridTemplateRows: "repeat(7, 10px)", gridAutoFlow: "column", gridAutoColumns: "10px", gap: "3px" }}>
+          style={{ display: "grid", gridTemplateRows: "repeat(7, 10px)", gridAutoFlow: "column", gridAutoColumns: "10px", gap: "3px", width: "max-content" }}>
           {mobileData.map((val, i) => {
             const globalIdx = mobileOffset + i;
             return (
@@ -602,6 +598,7 @@ const MagneticHeatmap = ({ data, counts, dates, onCellClick, trendMode }) => {
               />
             );
           })}
+        </div>
         </div>
         {tooltip?.touch && (
           <div className="flex items-center justify-between px-4 py-3 rounded-2xl"

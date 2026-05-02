@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Github, Settings, Shield, CheckCircle } from "lucide-react";
 import { settingsApi } from "@/lib/api";
 import { toast } from "sonner";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 const tabs = [
   { id: "github", label: "GitHub", icon: Github },
@@ -10,6 +12,16 @@ const tabs = [
 
 const SettingsScreen = () => {
   const [activeTab, setActiveTab] = useState("github");
+  const tabPanelRef = useRef(null);
+
+  useGSAP(() => {
+    if (tabPanelRef.current) {
+      gsap.fromTo(tabPanelRef.current,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }
+      );
+    }
+  }, { dependencies: [activeTab] });
 
   return (
     <div className="space-y-10 max-w-3xl mx-auto pb-32 px-6 pt-8">
@@ -18,7 +30,7 @@ const SettingsScreen = () => {
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: "oklch(var(--primary))" }} />
           <span className="mc-label">Configuration</span>
         </div>
-        <h1 className="mc-display text-6xl lg:text-8xl leading-[0.9] tracking-tighter">Settings.</h1>
+        <h1 className="mc-display text-5xl leading-[0.9] tracking-tighter">Settings.</h1>
         <div className="flex gap-2 pt-2">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -32,7 +44,7 @@ const SettingsScreen = () => {
         </div>
       </section>
 
-      <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div ref={tabPanelRef} key={activeTab}>
         {activeTab === "github" ? <GitHubSettings /> : <FocusSettings />}
       </div>
     </div>
@@ -117,11 +129,13 @@ const FocusSettings = () => {
     return s ? JSON.parse(s) : { pomodoro: 25, shortBreak: 5, longBreak: 15 };
   });
   const [saved, setSaved] = useState(false);
+  const savedRef = useRef(settings);
 
   useEffect(() => {
     settingsApi.get().then(s => {
       const merged = { pomodoro: s.pomodoro, shortBreak: s.shortBreak, longBreak: s.longBreak };
       setSettings(merged);
+      savedRef.current = merged;
       localStorage.setItem("kernel_settings", JSON.stringify(merged));
     }).catch(() => {});
   }, []);
@@ -130,9 +144,11 @@ const FocusSettings = () => {
   const commitChanges = () => {
     localStorage.setItem("kernel_settings", JSON.stringify(settings));
     settingsApi.update(settings).catch(() => {});
+    savedRef.current = settings;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
+  const discardChanges = () => setSettings(savedRef.current);
 
   return (
     <div className="mc-card space-y-12 border" style={{ border: "1px solid oklch(var(--text) / 0.05)" }}>
@@ -149,7 +165,7 @@ const FocusSettings = () => {
       </div>
 
       <div className="flex justify-end items-center gap-8 pt-8 border-t" style={{ borderColor: "oklch(var(--text) / 0.05)" }}>
-        <button className="mc-body text-[11px] font-bold uppercase tracking-widest transition-opacity hover:opacity-50"
+        <button onClick={discardChanges} className="mc-body text-[11px] font-bold uppercase tracking-widest transition-opacity hover:opacity-50"
           style={{ color: "oklch(var(--text-muted))" }}>
           Discard
         </button>
@@ -170,7 +186,7 @@ const DurationItem = ({ label, value, onChange }) => (
         type="number"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-transparent mc-display text-5xl w-full outline-none"
+        className="bg-transparent mc-display text-5xl w-full outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] rounded-lg"
         style={{ color: "oklch(var(--text))" }}
       />
       <span className="mc-label">min</span>

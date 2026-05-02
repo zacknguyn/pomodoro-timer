@@ -22,7 +22,7 @@ const EditorialCard = ({ children, glow = false, glowPos = "top-right", classNam
 
   return (
     <div
-      className={`mc-card relative overflow-hidden ${className}`}
+      className={`mc-card relative overflow-hidden flex flex-col ${className}`}
       style={{ background: "oklch(var(--text))" }}
     >
       {glow && (
@@ -31,7 +31,7 @@ const EditorialCard = ({ children, glow = false, glowPos = "top-right", classNam
           style={{ background: "oklch(var(--primary) / 0.08)" }}
         />
       )}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 flex flex-col h-full">{children}</div>
     </div>
   );
 };

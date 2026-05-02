@@ -25,7 +25,7 @@ const RootLayout = () => {
   if (isAuthPage) return <Outlet />;
 
   return (
-    <div className="min-h-screen bg-canvas text-text font-body selection:bg-primary/20 selection:text-text flex">
+    <div className="min-h-screen flex" style={{ background: "oklch(var(--canvas))", color: "oklch(var(--text))" }}>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={collapsed} onToggleCollapse={handleToggleCollapse} />
       <Header onMenuClick={() => setSidebarOpen(true)} collapsed={collapsed} />
       <main className={`flex-1 pt-16 overflow-y-auto h-screen scroll-smooth transition-all duration-300 ${collapsed ? 'lg:ml-16' : 'lg:ml-72'}`}>

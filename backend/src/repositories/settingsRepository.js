@@ -1,4 +1,4 @@
-import db from '../lib/db.js';
+import pool from '../lib/db.js';
 
 const toClient = (row) => row ? ({
   pomodoro: row.pomodoro,
@@ -7,44 +7,45 @@ const toClient = (row) => row ? ({
   githubConnected: !!row.github_token,
 }) : null;
 
-export class SettingsRepository {
-  findByUserId(userId) {
-    const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ?');
-    return toClient(stmt.get(userId));
+class SettingsRepository {
+  async findByUserId(userId) {
+    const { rows } = await pool.query('SELECT * FROM settings WHERE user_id = $1', [userId]);
+    return toClient(rows[0]);
   }
 
-  findRawByUserId(userId) {
-    const stmt = db.prepare('SELECT * FROM settings WHERE user_id = ?');
-    return stmt.get(userId);
+  async findRawByUserId(userId) {
+    const { rows } = await pool.query('SELECT * FROM settings WHERE user_id = $1', [userId]);
+    return rows[0] ?? null;
   }
 
-  getGithubToken(userId) {
-    const row = db.prepare('SELECT github_token FROM settings WHERE user_id = ?').get(userId);
-    return row?.github_token ?? null;
+  async getGithubToken(userId) {
+    const { rows } = await pool.query('SELECT github_token FROM settings WHERE user_id = $1', [userId]);
+    return rows[0]?.github_token ?? null;
   }
 
-  setGithubToken(userId, token) {
-    db.prepare('UPDATE settings SET github_token = ? WHERE user_id = ?').run(token, userId);
+  async setGithubToken(userId, token) {
+    await pool.query('UPDATE settings SET github_token = $1 WHERE user_id = $2', [token, userId]);
   }
 
-  setGithubUsername(userId, username) {
-    db.prepare('UPDATE settings SET github_username = ? WHERE user_id = ?').run(username, userId);
+  async setGithubUsername(userId, username) {
+    await pool.query('UPDATE settings SET github_username = $1 WHERE user_id = $2', [username, userId]);
   }
 
-  getGithubUsername(userId) {
-    const row = db.prepare('SELECT github_username FROM settings WHERE user_id = ?').get(userId);
-    return row?.github_username ?? null;
+  async getGithubUsername(userId) {
+    const { rows } = await pool.query('SELECT github_username FROM settings WHERE user_id = $1', [userId]);
+    return rows[0]?.github_username ?? null;
   }
 
-  update(userId, settings) {
-    db.prepare(`
-      UPDATE settings SET pomodoro = ?, short_break = ?, long_break = ? WHERE user_id = ?
-    `).run(settings.pomodoro, settings.shortBreak, settings.longBreak, userId);
+  async update(userId, settings) {
+    await pool.query(
+      'UPDATE settings SET pomodoro = $1, short_break = $2, long_break = $3 WHERE user_id = $4',
+      [settings.pomodoro, settings.shortBreak, settings.longBreak, userId]
+    );
     return this.findByUserId(userId);
   }
 
-  clearGithub(userId) {
-    db.prepare('UPDATE settings SET github_token = NULL, github_username = NULL WHERE user_id = ?').run(userId);
+  async clearGithub(userId) {
+    await pool.query('UPDATE settings SET github_token = NULL, github_username = NULL WHERE user_id = $1', [userId]);
   }
 }
 

@@ -11,8 +11,14 @@ const CreateGroupModal = ({ onClose, onCreated }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    githubApi.getRepos().then(setRepos).catch(() => setError("GitHub not connected. Connect GitHub in Settings first."));
+    githubApi.getRepos().then(setRepos).catch((err) => setError(err.message || "Failed to load repositories. Try reconnecting GitHub in Settings."));
   }, []);
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   const handleRepoSelect = (repo) => {
     setSelectedRepo(repo);
@@ -41,14 +47,15 @@ const CreateGroupModal = ({ onClose, onCreated }) => {
         onClick={onClose} />
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-6">
         <div className="w-full max-w-lg rounded-[32px] p-10 space-y-8"
+          role="dialog" aria-modal="true" aria-labelledby="create-group-title"
           style={{ background: "oklch(var(--canvas))", boxShadow: "0 40px 80px oklch(var(--text) / 0.12)" }}>
 
           <div className="flex items-center justify-between">
             <div>
               <p className="mc-label mb-1">New Group</p>
-              <h2 className="mc-display text-3xl tracking-tighter">Create a group</h2>
+              <h2 id="create-group-title" className="mc-display text-3xl tracking-tighter">Create a group</h2>
             </div>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-[oklch(var(--text)/0.05)] transition-colors">
+            <button onClick={onClose} aria-label="Close dialog" className="p-2 rounded-full hover:bg-[oklch(var(--text)/0.05)] transition-colors">
               {React.createElement(X, { className: "w-5 h-5", style: { color: "oklch(var(--text))" } })}
             </button>
           </div>
@@ -59,7 +66,7 @@ const CreateGroupModal = ({ onClose, onCreated }) => {
               <label htmlFor="group-name" className="mc-label">Group name</label>
               <input id="group-name" type="text" value={name} onChange={e => setName(e.target.value)}
                 placeholder="e.g. Frontend Team"
-                className="w-full px-5 py-3.5 rounded-2xl mc-body text-sm outline-none transition-all border"
+                className="w-full px-5 py-3.5 rounded-2xl mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] transition-all border"
                 style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }}
                 required />
             </div>

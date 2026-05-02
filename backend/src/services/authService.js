@@ -23,14 +23,11 @@ export class AuthService {
 
   async login(email, password) {
     const user = userRepository.findByEmail(email);
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
+    if (!user) throw new Error('Invalid credentials');
+    if (user.banned) throw new Error('Account suspended');
 
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      throw new Error('Invalid credentials');
-    }
+    if (!valid) throw new Error('Invalid credentials');
 
     return this.generateToken(user);
   }

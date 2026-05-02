@@ -4,13 +4,13 @@ import { User, LogOut, Menu, Sun, Moon } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 
 const ROUTE_LABELS = {
-  '/': 'Workspace',
-  '/home': 'Workspace',
-  '/pomodoro': 'Focus Session',
-  '/team': 'Team Registry',
-  '/settings': 'Settings',
-  '/about': 'Protocol',
-  '/profile': 'Profile',
+  '/app': 'Workspace',
+  '/app/pomodoro': 'Focus Session',
+  '/app/groups': 'Team Registry',
+  '/app/settings': 'Settings',
+  '/app/profile': 'Profile',
+  '/app/sessions': 'Sessions',
+  '/app/admin': 'Admin',
 };
 
 const Header = ({ isDeepFocus, onMenuClick, collapsed }) => {
@@ -85,7 +85,7 @@ const Header = ({ isDeepFocus, onMenuClick, collapsed }) => {
               <div className="px-5 py-4 border-b" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
                 <p className="mc-label" style={{ color: "oklch(var(--text))" }}>{displayName}</p>
               </div>
-              <DropdownItem icon={User} label="Profile" onClick={() => { setOpen(false); navigate('/profile'); }} />
+              <DropdownItem icon={User} label="Profile" onClick={() => { setOpen(false); navigate('/app/profile'); }} />
               <div className="h-px mx-4" style={{ background: "oklch(var(--text) / 0.06)" }} />
               <DropdownItem icon={LogOut} label="Terminate" danger
                 onClick={() => {

@@ -10,7 +10,7 @@ const MODE_LABEL = { pomodoro: "Focus", shortBreak: "Short break", longBreak: "L
 const MODE_COLOR = {
   pomodoro: "oklch(var(--primary))",
   shortBreak: "oklch(var(--accent))",
-  longBreak: "oklch(var(--accent))",
+  longBreak: "oklch(62% 0.12 240)",  // calm blue — distinct from shortBreak green
 };
 
 const SessionsScreen = () => {
@@ -51,35 +51,39 @@ const SessionsScreen = () => {
   const totalMinutes = filtered.filter(s => s.mode === "pomodoro").reduce((a, s) => a + s.duration, 0);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 pt-8 pb-24 space-y-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-24 space-y-10">
       <header className="space-y-1">
         <h1 className="mc-display text-5xl tracking-tighter">Sessions</h1>
         <p className="mc-body text-sm" style={{ color: "oklch(var(--text) / 0.4)" }}>Your complete focus history.</p>
       </header>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center">
-        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-          className="px-4 py-2 rounded-full mc-body text-sm outline-none border"
-          style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
-        {dateFilter && (
-          <button onClick={() => setDateFilter("")} className="mc-label hover:opacity-70 transition-opacity">Clear</button>
-        )}
-        <div className="flex gap-1 p-1 rounded-full" style={{ background: "oklch(var(--surface))" }}>
-          {["all", "pomodoro", "shortBreak", "longBreak"].map(m => (
-            <button key={m} onClick={() => setModeFilter(m)}
-              className="px-4 py-1.5 rounded-full mc-body text-xs font-bold uppercase tracking-widest transition-all"
-              style={{
-                background: modeFilter === m ? "oklch(var(--text))" : "transparent",
-                color: modeFilter === m ? "oklch(var(--canvas))" : "oklch(var(--text) / 0.5)",
-              }}>
-              {m === "all" ? "All" : MODE_LABEL[m]}
-            </button>
-          ))}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+            className="px-4 py-2 rounded-full mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border"
+            style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
+          {dateFilter && (
+            <button onClick={() => setDateFilter("")} className="mc-label hover:opacity-70 transition-opacity">Clear</button>
+          )}
         </div>
-        {filtered.length > 0 && (
-          <span className="mc-label ml-auto">{filtered.length} sessions · {totalMinutes}m focus</span>
-        )}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "oklch(var(--surface))" }}>
+            {["all", "pomodoro", "shortBreak", "longBreak"].map(m => (
+              <button key={m} onClick={() => setModeFilter(m)}
+                className="px-2.5 py-1.5 rounded-xl mc-body text-[10px] font-bold uppercase tracking-widest transition-all"
+                style={{
+                  background: modeFilter === m ? "oklch(var(--text))" : "transparent",
+                  color: modeFilter === m ? "oklch(var(--canvas))" : "oklch(var(--text) / 0.5)",
+                }}>
+                {m === "all" ? "All" : m === "pomodoro" ? "Focus" : m === "shortBreak" ? "Short" : "Long"}
+              </button>
+            ))}
+          </div>
+          {filtered.length > 0 && (
+            <span className="mc-label">{filtered.length} · {totalMinutes}m</span>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -88,9 +92,9 @@ const SessionsScreen = () => {
           {[...Array(6)].map((_, i) => <Skeleton key={i} style={{ height: "56px" }} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={Timer} title="No sessions yet"
-          body={modeFilter !== 'all' || dateFilter ? "No sessions match your filters." : "Complete your first focus session to see it here."}
-          action={!modeFilter && !dateFilter ? { label: "Start a session", href: "/pomodoro" } : undefined} />
+        <EmptyState icon={Timer} title="No sessions found"
+          body={modeFilter !== 'all' || dateFilter ? "Nothing matches your filters. Try clearing them." : "Complete your first focus session to see it here."}
+          action={modeFilter === 'all' && !dateFilter ? { label: "Start a session", href: "/app/pomodoro" } : undefined} />
       ) : (
         <div className="space-y-2">
           {paged.map(s => (
@@ -100,13 +104,21 @@ const SessionsScreen = () => {
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: MODE_COLOR[s.mode] || "oklch(var(--text) / 0.2)" }} />
               <div className="flex-1 min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="mc-body text-sm font-bold" style={{ color: "oklch(var(--text))" }}>
+                  <span className="mc-body text-sm font-bold" style={{ color: MODE_COLOR[s.mode] || "oklch(var(--text))" }}>
                     {MODE_LABEL[s.mode] || s.mode}
+                  </span>
+                  <span className="mc-label sm:hidden">
+                    {parseUTC(s.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </span>
                   {s.intent && (
                     <span className="flex items-center gap-1 mc-label">
                       {React.createElement(Target, { className: "w-3 h-3" })}
                       <span className="truncate max-w-[200px]">{s.intent}</span>
+                    </span>
+                  )}
+                  {s.note && (
+                    <span className="flex items-center gap-1 mc-label italic" style={{ color: "oklch(var(--text) / 0.5)" }}>
+                      <span className="truncate max-w-[200px]">"{s.note}"</span>
                     </span>
                   )}
                   {s.repo_name && (
@@ -117,12 +129,12 @@ const SessionsScreen = () => {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                 <span className="flex items-center gap-1.5 mc-label">
                   {React.createElement(Timer, { className: "w-3 h-3" })}
                   {s.duration}m
                 </span>
-                <span className="mc-label text-right" style={{ minWidth: "90px" }}>
+                <span className="mc-label text-right hidden sm:block" style={{ minWidth: "90px" }}>
                   {parseUTC(s.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   {" · "}
                   {parseUTC(s.completed_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
@@ -137,7 +149,7 @@ const SessionsScreen = () => {
                   </div>
                 ) : (
                   <button onClick={() => setConfirmDelete(s.id)}
-                    className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-40 hover:!opacity-100"
+                    className="p-1.5 rounded-lg transition-opacity opacity-30 hover:opacity-100"
                     style={{ color: "oklch(var(--text))" }}>
                     {React.createElement(Trash2, { className: "w-3.5 h-3.5" })}
                   </button>

@@ -16,13 +16,14 @@
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
+    "@vendia/serverless-express": "^4.12.6",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.3",
     "zod": "^3.23.8"
   }
 }

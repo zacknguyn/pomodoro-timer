@@ -10,26 +10,24 @@ const sessionSchema = z.object({
   mode: z.enum(['pomodoro', 'shortBreak', 'longBreak']),
   duration: z.number(),
   intent: z.string().optional(),
-  repoName: z.string().optional()
+  repoName: z.string().optional(),
+  note: z.string().optional(),
 });
 
 router.post('/', async (req, res) => {
   try {
     const data = sessionSchema.parse(req.body);
-    const session = sessionRepository.create({ ...data, userId: req.user.userId });
+    const session = await sessionRepository.create({ ...data, userId: req.user.userId });
     res.status(201).json(session);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 
-router.get('/export', (req, res) => {
-  const tzOffset = parseInt(req.query.tz) || 0; // minutes offset from UTC
-  const sessions = sessionRepository.findByUserId(req.user.userId);
-  const toLocal = (utc) => {
-    const d = new Date(new Date(utc).getTime() + tzOffset * 60000);
-    return d.toISOString().replace('T', ' ').slice(0, 19);
-  };
+router.get('/export', async (req, res) => {
+  const tzOffset = parseInt(req.query.tz) || 0;
+  const sessions = await sessionRepository.findByUserId(req.user.userId);
+  const toLocal = (utc) => new Date(new Date(utc).getTime() + tzOffset * 60000).toISOString().replace('T', ' ').slice(0, 19);
   const rows = [
     ['id', 'mode', 'duration_minutes', 'intent', 'repo', 'completed_at_local'],
     ...sessions.map(s => [s.id, s.mode, s.duration, s.intent || '', s.repo_name || '', toLocal(s.completed_at)]),
@@ -40,27 +38,26 @@ router.get('/export', (req, res) => {
   res.send(csv);
 });
 
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   const tz = parseInt(req.query.tz) || 0;
-  const stats = sessionRepository.getStats(req.user.userId, tz);
-  res.json(stats);
+  res.json(await sessionRepository.getStats(req.user.userId, tz));
 });
 
-router.get('/heatmap', (req, res) => {
+router.get('/heatmap', async (req, res) => {
   const tz = parseInt(req.query.tz) || 0;
-  res.json(sessionRepository.getHeatmap(req.user.userId, tz));
+  res.json(await sessionRepository.getHeatmap(req.user.userId, tz));
 });
 
 router.get('/', async (req, res) => {
   const { date } = req.query;
-  if (date) {
-    return res.json(sessionRepository.findByDate(req.user.userId, date));
-  }
-  res.json(sessionRepository.findByUserId(req.user.userId));
+  res.json(date
+    ? await sessionRepository.findByDate(req.user.userId, date)
+    : await sessionRepository.findByUserId(req.user.userId)
+  );
 });
 
-router.delete('/:id', (req, res) => {
-  sessionRepository.delete(req.params.id, req.user.userId);
+router.delete('/:id', async (req, res) => {
+  await sessionRepository.delete(req.params.id, req.user.userId);
   res.status(204).end();
 });
 

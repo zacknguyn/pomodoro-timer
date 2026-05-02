@@ -47,7 +47,7 @@ const GroupsScreen = () => {
     ), [groups, search]);
 
   return (
-    <div className="space-y-10 pb-20 px-8 pt-8 max-w-4xl mx-auto">
+    <div className="space-y-10 pb-20 px-4 sm:px-8 pt-8 max-w-4xl mx-auto">
 
       {/* Header */}
       <div className="flex items-end justify-between gap-6">
@@ -69,7 +69,7 @@ const GroupsScreen = () => {
           {React.createElement(Search, { className: "absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4", style: { color: "oklch(var(--text-muted))" } })}
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search groups or repos…"
-            className="w-full pl-11 pr-5 py-3 rounded-full mc-body text-sm outline-none border"
+            className="w-full pl-11 pr-5 py-3 rounded-full mc-body text-sm outline-none focus-visible:ring-2 focus-visible:ring-[oklch(var(--primary)/0.4)] border"
             style={{ background: "oklch(var(--surface))", borderColor: "oklch(var(--text) / 0.08)", color: "oklch(var(--text))" }} />
         </div>
         <div className="flex items-center gap-1 p-1 rounded-full" style={{ background: "oklch(var(--surface))" }}>
@@ -121,7 +121,7 @@ const GroupCard = ({ group: g }) => (
     }}>
     <div className="flex items-center gap-5">
       <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-        style={{ background: g.status === 'archived' ? "oklch(var(--text) / 0.06)" : "oklch(var(--text))" }}>
+        style={{ background: g.status === 'archived' ? "oklch(var(--text) / 0.06)" : "oklch(var(--primary))" }}>
         {g.status === 'archived'
           ? React.createElement(Archive, { className: "w-5 h-5", style: { color: "oklch(var(--text-muted))" } })
           : React.createElement(Users, { className: "w-5 h-5", style: { color: "oklch(var(--canvas))" } })}

@@ -9,12 +9,13 @@ const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 const AdminGuard = ({ children }) => {
   try {
     const user = JSON.parse(localStorage.getItem('registry_user') || '{}');
-    if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) return <Navigate to="/" replace />;
+    if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) return <Navigate to="/app" replace />;
   } catch { return <Navigate to="/" replace />; }
   return children;
 };
 
 const Dashboard = lazy(() => import("./pages/HomeScreen"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const AboutScreen = lazy(() => import("./pages/AboutScreen"));
 const PomodoroScreen = lazy(() => import("./pages/PomodoroScreen"));
 const TeamScreen = lazy(() => import("./pages/TeamScreen"));
@@ -30,17 +31,17 @@ const SessionsScreen = lazy(() => import("./pages/SessionsScreen"));
 const AdminScreen = lazy(() => import("./pages/AdminScreen"));
 
 const router = createBrowserRouter([
+  { path: '/', element: <Suspense fallback={<Loading />}><LandingPage /></Suspense> },
   { path: '/login', element: <Suspense fallback={<Loading />}><LoginScreen /></Suspense> },
   { path: '/register', element: <Suspense fallback={<Loading />}><RegisterScreen /></Suspense> },
   { path: '/github/callback', element: <Suspense fallback={<Loading />}><GitHubCallbackScreen /></Suspense> },
   { path: '/u/:username', element: <Suspense fallback={<Loading />}><PublicProfileScreen /></Suspense> },
   {
-    path: '/',
+    path: '/app',
     element: <AuthGuard><RootLayout /></AuthGuard>,
     children: [
       { index: true, element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
-      { path: 'home', element: <Suspense fallback={<Loading />}><Dashboard /></Suspense> },
-      { path: 'about', element: <Suspense fallback={<Loading />}><AboutScreen /></Suspense> },
+      { path: 'about', element: <Navigate to="/" replace /> },
       { path: 'pomodoro', element: <Suspense fallback={<Loading />}><PomodoroScreen /></Suspense> },
       { path: 'team', element: <Suspense fallback={<Loading />}><TeamScreen /></Suspense> },
       { path: 'groups', element: <Suspense fallback={<Loading />}><GroupsScreen /></Suspense> },
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
       { path: 'admin', element: <AdminGuard><Suspense fallback={<Loading />}><AdminScreen /></Suspense></AdminGuard> },
     ],
   },
+  { path: '/about', element: <Navigate to="/" replace /> },
 ]);
 
 export default router

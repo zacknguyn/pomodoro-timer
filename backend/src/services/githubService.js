@@ -22,27 +22,6 @@ export class GithubService {
     }
   }
 
-  async searchCommitsByDate(accessToken, date) {
-    const octokit = new Octokit({ auth: accessToken });
-    try {
-      const { data: user } = await octokit.users.getAuthenticated();
-      const { data } = await octokit.search.commits({
-        q: `author:${user.login} committer-date:${date}`,
-        per_page: 30,
-        sort: 'committer-date',
-      });
-      return data.items.map(c => ({
-        sha: c.sha.slice(0, 7),
-        message: c.commit.message.split('\n')[0],
-        repo: c.repository.full_name,
-        url: c.html_url,
-        date: c.commit.committer.date,
-      }));
-    } catch (error) {
-      throw new Error(`GitHub API Error: ${error.message}`);
-    }
-  }
-
   async getCommits(accessToken, owner, repo) {
     const octokit = new Octokit({ auth: accessToken });
     try {
@@ -96,7 +75,11 @@ export class GithubService {
         .flatMap(w => w.contributionDays)
         .slice(-364);
 
-      while (days.length < 364) days.unshift({ date: '', contributionCount: 0 });
+      while (days.length < 364) {
+        const d = new Date();
+        d.setDate(d.getDate() - days.length);
+        days.unshift({ date: d.toISOString().slice(0, 10), contributionCount: 0 });
+      }
 
       return days.map(d => {
         const c = d.contributionCount;

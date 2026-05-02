@@ -1,58 +1,54 @@
-import db from '../lib/db.js';
-import { randomUUID } from 'node:crypto';
+import pool from '../lib/db.js';
 
-export class UserRepository {
-  findAll() {
-    return db.prepare('SELECT id, email FROM users ORDER BY email').all();
+class UserRepository {
+  async findAll() {
+    const { rows } = await pool.query('SELECT id, email, banned, created_at FROM users ORDER BY created_at DESC');
+    return rows;
   }
 
-  findById(id) {
-    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-    return stmt.get(id);
+  async findById(id) {
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    return rows[0] ?? null;
   }
 
-  findByEmail(email) {
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    return stmt.get(email);
+  async findByEmail(email) {
+    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    return rows[0] ?? null;
   }
 
-  findByUsername(username) {
-    // username = email prefix (before @)
-    const stmt = db.prepare("SELECT * FROM users WHERE email LIKE ?");
-    return stmt.get(`${username}@%`);
+  async findByUsername(username) {
+    const { rows } = await pool.query("SELECT * FROM users WHERE email LIKE $1", [`${username}@%`]);
+    return rows[0] ?? null;
   }
 
-  create(user) {
-    const id = randomUUID();
-    const stmt = db.prepare('INSERT INTO users (id, email, password) VALUES (?, ?, ?)');
-    stmt.run(id, user.email, user.password);
-    
-    // Create default settings
-    const settingsStmt = db.prepare('INSERT INTO settings (user_id) VALUES (?)');
-    settingsStmt.run(id);
-
-    return { id, email: user.email };
+  async create({ email, password }) {
+    const { rows } = await pool.query(
+      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
+      [email, password]
+    );
+    const user = rows[0];
+    await pool.query('INSERT INTO settings (user_id) VALUES ($1)', [user.id]);
+    return user;
   }
 
-  updateProfile(id, { displayName, bio, avatarStyle }) {
-    db.prepare(`
-      UPDATE users SET
-        display_name = COALESCE(?, display_name),
-        bio = COALESCE(?, bio),
-        avatar_style = COALESCE(?, avatar_style)
-      WHERE id = ?
-    `).run(displayName ?? null, bio ?? null, avatarStyle ?? null, id);
+  async updateProfile(id, { displayName, bio, avatarStyle }) {
+    await pool.query(
+      `UPDATE users SET
+        display_name = COALESCE($1, display_name),
+        bio = COALESCE($2, bio),
+        avatar_style = COALESCE($3, avatar_style)
+       WHERE id = $4`,
+      [displayName ?? null, bio ?? null, avatarStyle ?? null, id]
+    );
   }
 
-  setBanned(id, banned) {
-    db.prepare('UPDATE users SET banned = ? WHERE id = ?').run(banned ? 1 : 0, id);
+  async setBanned(id, banned) {
+    await pool.query('UPDATE users SET banned = $1 WHERE id = $2', [banned, id]);
   }
 
-  delete(id) {
-    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
-    db.prepare('DELETE FROM settings WHERE user_id = ?').run(id);
-    db.prepare('DELETE FROM group_members WHERE user_id = ?').run(id);
-    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  async delete(id) {
+    // Cascades handle sessions, settings, group_members via FK ON DELETE CASCADE
+    await pool.query('DELETE FROM users WHERE id = $1', [id]);
   }
 }
 
