@@ -10,35 +10,40 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 export class AuthService {
   async register(email, password) {
-    const existing = userRepository.findByEmail(email);
-    if (existing) {
-      throw new Error('User already exists');
-    }
-
+    const existing = await userRepository.findByEmail(email);
+    if (existing) throw new Error('User already exists');
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = userRepository.create({ email, password: hashedPassword });
-
+    const user = await userRepository.create({ email, password: hashedPassword });
     return this.generateToken(user);
   }
 
   async login(email, password) {
-    const user = userRepository.findByEmail(email);
+    const user = await userRepository.findByEmail(email);
     if (!user) throw new Error('Invalid credentials');
     if (user.banned) throw new Error('Account suspended');
-
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new Error('Invalid credentials');
-
     return this.generateToken(user);
   }
 
   generateToken(user) {
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role ?? 'user' },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
-    return { token, user: { id: user.id, email: user.email } };
+    return { token, user: { id: user.id, email: user.email, role: user.role ?? 'user' } };
+  }
+
+  // Called once at startup — promotes INITIAL_ADMIN_EMAIL to admin if set
+  async seedInitialAdmin() {
+    const email = process.env.INITIAL_ADMIN_EMAIL;
+    if (!email) return;
+    const user = await userRepository.findByEmail(email);
+    if (user && user.role !== 'superadmin') {
+      await userRepository.setRole(user.id, 'superadmin');
+      console.log(`[auth] Seeded initial superadmin: ${email}`);
+    }
   }
 }
 

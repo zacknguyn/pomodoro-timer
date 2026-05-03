@@ -87,14 +87,10 @@ export const settingsApi = {
   disconnectGithub: () => fetcher('/settings/github', { method: 'DELETE' }),
 };
 
-const adminFetcher = (url, options = {}) => {
-  const secret = import.meta.env.VITE_ADMIN_SECRET || '';
-  return fetcher(url, { ...options, headers: { 'x-admin-secret': secret, ...options.headers } });
-};
-
 export const adminApi = {
-  stats: () => adminFetcher('/admin/stats'),
-  users: () => adminFetcher('/admin/users'),
-  ban: (id) => adminFetcher(`/admin/users/${id}/ban`, { method: 'PATCH' }),
-  delete: (id) => adminFetcher(`/admin/users/${id}`, { method: 'DELETE' }),
+  stats: () => fetcher('/admin/stats'),
+  users: () => fetcher('/admin/users'),
+  ban: (id) => fetcher(`/admin/users/${id}/ban`, { method: 'PATCH' }),
+  setRole: (id, role) => fetcher(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  delete: (id) => fetcher(`/admin/users/${id}`, { method: 'DELETE' }),
 };

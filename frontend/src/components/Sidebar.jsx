@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Timer, Users, Settings, Info, LogOut, Github, X, Clock, PanelLeftClose, PanelLeftOpen, ShieldCheck } from 'lucide-react';
-
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
+import { LayoutDashboard, Timer, Users, Settings, LogOut, Github, X, Clock, PanelLeftClose, PanelLeftOpen, ShieldCheck } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Workspace', to: '/app' },
@@ -16,7 +14,7 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('registry_user') || '{}');
   const initial = user.email?.charAt(0).toUpperCase() || '?';
-  const isAdmin = ADMIN_EMAIL && user.email === ADMIN_EMAIL;
+  const isAdmin = ['admin', 'superadmin'].includes(user.role);
   const allNavItems = isAdmin ? [...navItems, { icon: ShieldCheck, label: 'Admin', to: '/app/admin' }] : navItems;
 
   const handleLogout = () => {

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio         TEXT,
   avatar_style TEXT NOT NULL DEFAULT 'thumbs',
   banned      BOOLEAN NOT NULL DEFAULT false,
+  role        TEXT NOT NULL DEFAULT 'user', -- 'user' | 'admin' | 'superadmin'
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

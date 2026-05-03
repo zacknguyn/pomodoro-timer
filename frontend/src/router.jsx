@@ -4,13 +4,11 @@ import RootLayout from "./layouts/RootLayout";
 import Loading from "./components/Loading";
 import AuthGuard from "./components/AuthGuard";
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
-
 const AdminGuard = ({ children }) => {
   try {
     const user = JSON.parse(localStorage.getItem('registry_user') || '{}');
-    if (!ADMIN_EMAIL || user.email !== ADMIN_EMAIL) return <Navigate to="/app" replace />;
-  } catch { return <Navigate to="/" replace />; }
+    if (!['admin', 'superadmin'].includes(user.role)) return <Navigate to="/app" replace />;
+  } catch { return <Navigate to="/app" replace />; }
   return children;
 };
 

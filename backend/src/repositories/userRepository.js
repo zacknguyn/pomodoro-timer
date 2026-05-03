@@ -46,6 +46,10 @@ class UserRepository {
     await pool.query('UPDATE users SET banned = $1 WHERE id = $2', [banned, id]);
   }
 
+  async setRole(id, role) {
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
+  }
+
   async delete(id) {
     // Cascades handle sessions, settings, group_members via FK ON DELETE CASCADE
     await pool.query('DELETE FROM users WHERE id = $1', [id]);

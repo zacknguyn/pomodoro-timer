@@ -9,6 +9,7 @@ import githubController from './src/controllers/githubController.js';
 import groupController from './src/controllers/groupController.js';
 import usersController from './src/controllers/usersController.js';
 import adminController from './src/controllers/adminController.js';
+import authService from './src/services/authService.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
+  await authService.seedInitialAdmin();
   console.log(`Backend listening at http://localhost:${port}`);
 });

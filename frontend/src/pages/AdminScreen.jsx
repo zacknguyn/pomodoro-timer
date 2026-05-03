@@ -34,9 +34,10 @@ const AdminScreen = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null); // user id being acted on
+  const [actionLoading, setActionLoading] = useState(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest');
+  const currentUser = JSON.parse(localStorage.getItem('registry_user') || '{}');
 
   useEffect(() => {
     Promise.all([adminApi.stats(), adminApi.users()])
@@ -51,6 +52,14 @@ const AdminScreen = () => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, banned: res.banned ? 1 : 0 } : u));
     toast.success(res.banned ? 'User banned' : 'User unbanned');
     setConfirmAction(null);
+    setActionLoading(null);
+  };
+
+  const handleSetRole = async (id, role) => {
+    setActionLoading(id);
+    await adminApi.setRole(id, role);
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u));
+    toast.success(role === 'admin' ? 'Promoted to admin' : 'Demoted to user');
     setActionLoading(null);
   };
 
@@ -147,6 +156,18 @@ const AdminScreen = () => {
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="mc-body text-sm font-bold truncate">{u.email}</span>
+                    {u.role === 'superadmin' && (
+                      <span className="mc-label px-2 py-0.5 rounded-full"
+                        style={{ background: "oklch(var(--primary) / 0.15)", color: "oklch(var(--primary))" }}>
+                        Superadmin
+                      </span>
+                    )}
+                    {u.role === 'admin' && (
+                      <span className="mc-label px-2 py-0.5 rounded-full"
+                        style={{ background: "oklch(var(--text) / 0.07)", color: "oklch(var(--text-muted))" }}>
+                        Admin
+                      </span>
+                    )}
                     {u.github_connected ? (
                       <Github className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "oklch(var(--text) / 0.4)" }} />
                     ) : null}
@@ -201,7 +222,17 @@ const AdminScreen = () => {
                       style={{ color: u.banned ? "oklch(var(--accent))" : "oklch(var(--text-muted))" }}>
                       {u.banned ? <ShieldCheck className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
                     </button>
-                    <button onClick={() => setConfirmAction({ type: 'delete', id: u.id })}
+                    {/* Promote/demote: hidden for superadmin targets; regular admins can't touch other admins */}
+                    {u.role !== 'superadmin' && !(u.role === 'admin' && currentUser.role !== 'superadmin') && (
+                      <button
+                        onClick={() => handleSetRole(u.id, u.role === 'admin' ? 'user' : 'admin')}
+                        disabled={actionLoading === u.id}
+                        className="p-2 rounded-full transition-colors hover:bg-[oklch(var(--text)/0.05)] disabled:opacity-40"
+                        title={u.role === 'admin' ? 'Demote to user' : 'Promote to admin'}
+                        style={{ color: u.role === 'admin' ? "oklch(var(--primary))" : "oklch(var(--text-muted))" }}>
+                        <ShieldCheck className="w-4 h-4" />
+                      </button>
+                    )}                    <button onClick={() => setConfirmAction({ type: 'delete', id: u.id })}
                       className="p-2 rounded-full transition-colors hover:bg-[oklch(var(--text)/0.05)]"
                       title="Delete user"
                       style={{ color: "oklch(var(--text-muted))" }}>
