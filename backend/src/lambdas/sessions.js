@@ -2,11 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import serverlessExpress from '@vendia/serverless-express';
-import sessionController from '../controllers/sessionController.js';
+import controller from '../controllers/sessionsController.js';
 
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
-app.use('/api/sessions', sessionController);
+app.use('/api/sessions', controller);
 
-export const handler = serverlessExpress({ app });
+const serverlessApp = serverlessExpress({ app });
+export const handler = (event, context) => serverlessApp(event, context);

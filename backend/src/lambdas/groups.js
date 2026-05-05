@@ -2,11 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import serverlessExpress from '@vendia/serverless-express';
-import groupController from '../controllers/groupController.js';
+import controller from '../controllers/groupsController.js';
 
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
-app.use('/api/groups', groupController);
+app.use('/api/groups', controller);
 
-export const handler = serverlessExpress({ app });
+const serverlessApp = serverlessExpress({ app });
+export const handler = (event, context) => serverlessApp(event, context);
