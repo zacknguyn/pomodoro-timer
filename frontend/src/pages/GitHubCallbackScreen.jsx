@@ -9,7 +9,7 @@ const GitHubCallbackScreen = () => {
   const error = params.get("error");
 
   useEffect(() => {
-    const t = setTimeout(() => navigate("/settings"), 2500);
+    const t = setTimeout(() => navigate("/app/settings"), 2500);
     return () => clearTimeout(t);
   }, [navigate]);
 

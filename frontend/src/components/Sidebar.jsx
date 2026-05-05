@@ -89,7 +89,7 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse }) => {
         {/* Nav */}
         <nav className="flex-1 px-2 py-2 space-y-0.5">
           {allNavItems.map(({ icon: Icon, label, to }) => (
-            <NavLink key={to} to={to} end={to === '/'}
+            <NavLink key={to} to={to} end
               onClick={handleNavClick}
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
