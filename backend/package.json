@@ -12,7 +12,11 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "node --check index.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
