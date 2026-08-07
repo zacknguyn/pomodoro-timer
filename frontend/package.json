@@ -17,7 +17,7 @@
     "@fontsource-variable/archivo": "^5.2.8",
     "@fontsource/fragment-mono": "^5.2.8",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.575.0",
+    "lucide-react": "^1.28.0",
     "motion": "^13.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
