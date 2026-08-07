@@ -40,7 +40,7 @@ import {
   clampSidebarWidth,
 } from './lib/sidebar'
 import { resolveInitialView } from './lib/navigation'
-import { createTask, migrateStore, moveTask } from './lib/workspace'
+import { createTask, migrateStore, moveTask, safeExternalUrl } from './lib/workspace'
 
 const STORAGE_KEY = 'stillpoint.local.v1'
 const WORKSPACE_KEY = 'pomogit.workspace.opened'
@@ -333,13 +333,19 @@ function OutcomeComposer({ onStart, onSave }) {
   const [reference, setReference] = useState('')
   const [duration, setDuration] = useState(25)
   const [error, setError] = useState('')
+  const [referenceError, setReferenceError] = useState('')
 
   function details() {
     if (objective.trim().length < 4) {
       setError('Describe a result you will be able to recognize.')
       return null
     }
-    return { objective, reference, durationMinutes: duration }
+    const safeReference = safeExternalUrl(reference.trim())
+    if (reference.trim() && !safeReference) {
+      setReferenceError('Use a complete HTTP or HTTPS URL.')
+      return null
+    }
+    return { objective, reference: safeReference, durationMinutes: duration }
   }
 
   function submit(event) {
@@ -363,7 +369,7 @@ function OutcomeComposer({ onStart, onSave }) {
       <input id="outcome" value={objective} onChange={(event) => { setObjective(event.target.value); setError('') }} placeholder="Fix the failing OAuth callback retry" aria-invalid={Boolean(error)} aria-describedby={error ? 'outcome-error' : undefined} />
       {error && <p className="field-error" id="outcome-error">{error}</p>}
       <div className="composer-details">
-        <div><label htmlFor="reference">Reference <span>Optional</span></label><input id="reference" type="url" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="GitHub issue or task URL" /></div>
+        <div><label htmlFor="reference">Reference <span>Optional</span></label><input id="reference" type="url" value={reference} onChange={(event) => { setReference(event.target.value); setReferenceError('') }} placeholder="GitHub issue or task URL" aria-invalid={Boolean(referenceError)} aria-describedby={referenceError ? 'reference-error' : undefined} />{referenceError && <p className="field-error" id="reference-error">{referenceError}</p>}</div>
         <fieldset><legend>Focus length</legend><div className="duration-picker">{DURATION_OPTIONS.map((minutes) => <button key={minutes} type="button" aria-pressed={duration === minutes} onClick={() => setDuration(minutes)}>{minutes}</button>)}</div></fieldset>
       </div>
       <div className="composer-actions">
@@ -557,7 +563,7 @@ function Focus({ active, completed, planned, remainingMs, onPause, onResume, onE
     <main className="focus-view" id="main-content">
       <FocusLandscape progress={progress} paused={active.status === 'paused'} />
       <div className="focus-content">
-        <div className="focus-meta"><span><i className={active.status} /> 02 / {active.status === 'paused' ? 'Paused' : 'Focus in progress'}</span>{active.reference && <a href={active.reference} target="_blank" rel="noreferrer">Open reference <ExternalLink size={14} /></a>}</div>
+        <div className="focus-meta"><span><i className={active.status} /> 02 / {active.status === 'paused' ? 'Paused' : 'Focus in progress'}</span>{safeExternalUrl(active.reference) && <a href={safeExternalUrl(active.reference)} target="_blank" rel="noopener noreferrer">Open reference <ExternalLink size={14} /></a>}</div>
         <h1>{active.objective}</h1>
         <div className="focus-clock" aria-label={`${formatClock(remainingMs)} remaining`}>{formatClock(remainingMs)}</div>
         <div className="focus-progress"><span style={{ transform: `scaleX(${progress})` }} /></div>

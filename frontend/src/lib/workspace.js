@@ -62,3 +62,13 @@ export function moveTask(tasks, taskId, status) {
   if (!TASK_STATUSES.includes(status)) return tasks
   return tasks.map((task) => task.id === taskId ? { ...task, status } : task)
 }
+
+export function safeExternalUrl(value) {
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : ''
+  } catch {
+    return ''
+  }
+}
