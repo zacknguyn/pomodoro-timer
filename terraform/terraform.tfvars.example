@@ -1,0 +1,13 @@
+project_name = "pomogit"
+environment  = "dev"
+aws_region   = "us-west-2"
+
+# Keep this false unless the environment is disposable and automatic bucket
+# deletion is explicitly desired.
+force_destroy_bucket = false
+
+cloudfront_price_class = "PriceClass_100"
+
+tags = {
+  Owner = "pomodoro-admin"
+}

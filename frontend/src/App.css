@@ -9,21 +9,11 @@
   letter-spacing: -0.06em;
 }
 
-.brand-seed {
-  position: relative;
-  width: 25px;
-  height: 22px;
-  display: inline-block;
-}
-
-.brand-seed i { position: absolute; display: block; width: 9px; height: 9px; border-radius: 1px; background: var(--ink); transform: rotate(45deg); }
-.brand-seed i:nth-child(1) { left: 0; top: 1px; }
-.brand-seed i:nth-child(2) { right: 0; top: 1px; }
-.brand-seed i:nth-child(3) { left: 8px; bottom: 0; background: var(--ink); }
+.brand-mark { width: 32px; height: 32px; flex: none; object-fit: contain; }
 .brand-compact { gap: 0.45rem; font-size: 0.82rem; }
-.brand-compact .brand-seed { width: 19px; height: 17px; }
-.brand-compact .brand-seed i { width: 7px; height: 7px; }
-.brand-compact .brand-seed i:nth-child(3) { left: 6px; }
+.brand-compact .brand-mark { width: 24px; height: 24px; }
+:root[data-theme='dark'] .brand-mark,
+:root[data-theme='dark'] .hero-logo { filter: invert(1) brightness(0.94); }
 
 .theme-button {
   width: 42px;
@@ -105,12 +95,7 @@
 .hero-action { margin-top: var(--space-xl); padding: 0.8rem 1.3rem; }
 .local-note { display: block; margin-top: var(--space-sm); color: var(--ink-faint); font-size: 0.78rem; }
 
-.hero-sprig { position: relative; width: 68px; height: 68px; display: block; margin: 0 auto var(--space-lg); }
-.hero-sprig i { position: absolute; width: 25px; height: 14px; border-radius: 5px 2px; background: var(--ink); }
-.hero-sprig i:nth-child(1) { left: 3px; top: 8px; transform: rotate(12deg); }
-.hero-sprig i:nth-child(2) { right: 3px; top: 8px; transform: rotate(-12deg); }
-.hero-sprig i:nth-child(3) { left: 22px; top: 28px; transform: rotate(90deg); }
-.hero-sprig i:nth-child(4) { left: 34px; bottom: 3px; width: 17px; transform: rotate(-35deg); }
+.hero-logo { width: 112px; height: 112px; display: block; margin: 0 auto var(--space-lg); object-fit: contain; }
 
 .sprout-points { width: 100%; display: grid; margin: 0; padding: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); list-style: none; text-align: left; }
 .sprout-points li { min-height: 175px; display: flex; flex-direction: column; align-items: flex-start; padding: var(--space-lg); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }

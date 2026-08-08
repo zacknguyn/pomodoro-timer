@@ -1,0 +1,14 @@
+# Terraform runtime files (the dependency lock file should be committed).
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
