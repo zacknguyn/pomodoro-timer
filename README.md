@@ -140,6 +140,8 @@ The [`CI` workflow](./.github/workflows/ci.yml) models a build-once delivery pat
 
 The workflow has read-only repository permissions and deliberately receives no AWS credentials. Enabling deployment later will require a separately reviewed GitHub OIDC role and environment approval.
 
+GitHub CodeQL default setup scans Actions and JavaScript/TypeScript on the default branch and on pull requests targeting it.
+
 ## Repository layout
 
 ```text
