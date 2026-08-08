@@ -115,7 +115,7 @@ function initialView(store) {
 function Brand({ compact = false }) {
   return (
     <span className={`brand ${compact ? 'brand-compact' : ''}`}>
-      <span className="brand-seed" aria-hidden="true"><i /><i /><i /></span>
+      <img className="brand-mark" src="/pomogit-logo.png" alt="" width="32" height="32" />
       <span>pomogit</span>
     </span>
   )
@@ -164,7 +164,7 @@ function Landing({ theme, onTheme, onEnter }) {
       <main>
         <section className="landing-hero">
           <div className="hero-copy reveal" style={{ '--delay': '0ms' }}>
-            <span className="hero-sprig" aria-hidden="true"><i /><i /><i /><i /></span>
+            <img className="hero-logo" src="/pomogit-logo.png" alt="" width="112" height="112" />
             <span className="hero-label">A visual workspace for focused work</span>
             <h1>Keep work visible. Finish one thing.</h1>
             <p>Collect tasks on a board, think freely on a canvas, and enter focus only when one outcome is ready.</p>
