@@ -10,7 +10,7 @@
     "dev": "vite",
     "test": "node --test src/lib/*.test.js",
     "build": "vite build",
-    "lint": "eslint src/App.jsx src/main.jsx src/lib",
+    "lint": "eslint src/App.jsx src/main.jsx src/lib src/components",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -36,5 +36,8 @@
     "globals": "^16.5.0",
     "tailwindcss": "^4.3.3",
     "vite": "^7.3.5"
+  },
+  "overrides": {
+    "nanoid": "3.3.18"
   }
 }
