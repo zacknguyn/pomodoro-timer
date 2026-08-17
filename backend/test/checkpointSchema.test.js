@@ -19,3 +19,10 @@ test('complete checkpoints do not require a next step', () => {
   assert.equal(result.success, true);
   assert.equal(result.data.nextStep, '');
 });
+
+test('checkpoint evidence is preserved exactly as entered', () => {
+  const whatChanged = 'fix: retry callback\n\nPreserve this body exactly.\n';
+  const result = checkpointSchema.safeParse({ ...baseCheckpoint, whatChanged, outcome: 'complete' });
+  assert.equal(result.success, true);
+  assert.equal(result.data.whatChanged, whatChanged);
+});

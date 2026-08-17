@@ -11,8 +11,10 @@ import {
 } from 'lucide-react'
 import { DitherButton } from './dither-kit/DitherButton'
 import { DitherGradient } from './dither-kit/DitherGradient'
-import { CheckpointShell, FocusOverlay } from './FocusOverlay'
+import { CheckpointOverlay } from './CheckpointOverlay'
+import { FocusOverlay } from './FocusOverlay'
 import { workApi } from '../lib/workApi'
+import { applyCheckpointToTasks } from '../lib/checkpointForm'
 import { deriveNowState, groupTasks } from '../lib/workView'
 
 const READY_PREVIEW_SIZE = 4
@@ -322,6 +324,15 @@ export default function WorkScreen() {
     setCheckpointSession(endedSession)
   }
 
+  function handleCheckpointSaved(checkpoint) {
+    setTasks((current) => applyCheckpointToTasks(current, checkpoint))
+    setCheckpointsByTask((current) => ({
+      ...current,
+      [checkpoint.taskId]: [checkpoint, ...(current[checkpoint.taskId] || [])],
+    }))
+    setCheckpointSession(null)
+  }
+
   async function createTask(title, status = tasks.length === 0 ? 'ready' : 'inbox') {
     setBusyTaskId('creating')
     setError('')
@@ -423,7 +434,12 @@ export default function WorkScreen() {
         onSessionChange={setSession}
         onEnded={handleSessionEnded}
       />
-      <CheckpointShell open={Boolean(checkpointSession)} task={checkpointTask} onClose={() => setCheckpointSession(null)} />
+      <CheckpointOverlay
+        open={Boolean(checkpointSession)}
+        session={checkpointSession}
+        task={checkpointTask}
+        onSaved={handleCheckpointSaved}
+      />
     </div>
   )
 }

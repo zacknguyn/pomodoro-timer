@@ -118,19 +118,3 @@ export function FocusOverlay({ open, session, task, onClose, onSessionChange, on
     </dialog>
   )
 }
-
-export function CheckpointShell({ open, task, onClose }) {
-  const dialogRef = useModalDialog(open, onClose)
-  if (!task) return null
-
-  return (
-    <dialog ref={dialogRef} className="checkpoint-dialog" aria-labelledby="checkpoint-title">
-      <div className="checkpoint-shell">
-        <p className="section-kicker">Session ended</p>
-        <h1 id="checkpoint-title">Leave a checkpoint</h1>
-        <p><strong>{task.title}</strong> is ready for a short record of what changed and what happens next.</p>
-        <button className="button-secondary" type="button" onClick={onClose}>Back to Work</button>
-      </div>
-    </dialog>
-  )
-}

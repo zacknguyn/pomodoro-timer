@@ -44,5 +44,9 @@ export const workApi = {
     method: 'PATCH',
     body: JSON.stringify({ action }),
   }),
+  createCheckpoint: (checkpoint) => request('/checkpoints', {
+    method: 'POST',
+    body: JSON.stringify(checkpoint),
+  }),
   getTaskCheckpoints: (taskId) => request(`/tasks/${taskId}/checkpoints`),
 }
