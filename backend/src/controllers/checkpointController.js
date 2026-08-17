@@ -8,7 +8,7 @@ const router = Router();
 export const checkpointSchema = z.object({
   taskId: z.string().trim().min(1, 'taskId is required'),
   sessionId: z.string().trim().min(1, 'sessionId is required'),
-  whatChanged: z.string().trim().max(4_000).optional().default(''),
+  whatChanged: z.string().max(4_000).optional().default(''),
   nextStep: z.string().trim().max(2_000).optional().default(''),
   outcome: z.enum(['continue', 'complete']),
 }).strict().superRefine((checkpoint, context) => {
