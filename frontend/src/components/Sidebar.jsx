@@ -92,7 +92,7 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse }) => {
             <NavLink key={to} to={to} end
               onClick={handleNavClick}
               title={collapsed ? label : undefined}
-              className={({ isActive }) =>
+              className={() =>
                 `flex items-center gap-3 px-3 py-3 rounded-2xl mc-body text-[11px] font-bold uppercase tracking-[0.15em] transition-all ${
                   collapsed ? 'justify-center' : 'px-4'
                 }`
@@ -123,7 +123,7 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse }) => {
         <div className="px-2 py-6 border-t space-y-1" style={{ borderColor: "oklch(var(--text) / 0.06)" }}>
           <NavLink to="/app/profile" onClick={handleNavClick}
             title={collapsed ? 'Profile' : undefined}
-            className={({ isActive }) =>
+            className={() =>
               `flex items-center gap-3 px-3 py-3 rounded-2xl transition-all mc-body text-[11px] font-bold uppercase tracking-[0.15em] ${
                 collapsed ? 'justify-center' : 'px-4'
               }`
