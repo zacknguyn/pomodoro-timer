@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { DitherButton } from './dither-kit/DitherButton'
 import { DitherGradient } from './dither-kit/DitherGradient'
+import { CheckpointShell, FocusOverlay } from './FocusOverlay'
 import { workApi } from '../lib/workApi'
 import { deriveNowState, groupTasks } from '../lib/workView'
 
@@ -75,7 +76,7 @@ function CaptureForm({ compact = false, onCreate, disabled }) {
   )
 }
 
-function NowCard({ state, onCreate, onOpenInbox, disabled }) {
+function NowCard({ state, onCreate, onAction, disabled }) {
   const title = state.task?.title || (state.kind === 'empty' ? null : 'Choose what should move next')
   const supporting = state.kind === 'active'
     ? 'This session is running. Return when you are ready to leave a checkpoint.'
@@ -106,7 +107,8 @@ function NowCard({ state, onCreate, onOpenInbox, disabled }) {
       {state.kind !== 'empty' && (
         <DitherButton
           className="now-action"
-          onClick={state.kind === 'idle' ? onOpenInbox : undefined}
+          onClick={onAction}
+          disabled={disabled}
           aria-label={`${state.action}${state.task ? `: ${state.task.title}` : ''}`}
         >
           {state.action} <ArrowRight size={17} aria-hidden="true" />
@@ -251,6 +253,8 @@ export default function WorkScreen() {
   const [busyTaskId, setBusyTaskId] = useState('')
   const [readyExpanded, setReadyExpanded] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
+  const [focusOpen, setFocusOpen] = useState(false)
+  const [checkpointSession, setCheckpointSession] = useState(null)
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true)
@@ -276,6 +280,8 @@ export default function WorkScreen() {
 
   const grouped = useMemo(() => groupTasks(tasks), [tasks])
   const now = useMemo(() => deriveNowState({ tasks, session, checkpointsByTask }), [tasks, session, checkpointsByTask])
+  const focusTask = useMemo(() => tasks.find((task) => task.id === session?.taskId), [session, tasks])
+  const checkpointTask = useMemo(() => tasks.find((task) => task.id === checkpointSession?.taskId), [checkpointSession, tasks])
 
   function openInboxComposer() {
     setInboxOpen(true)
@@ -284,6 +290,36 @@ export default function WorkScreen() {
       field?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       field?.focus({ preventScroll: true })
     })
+  }
+
+  async function handleNowAction() {
+    if (now.kind === 'idle') {
+      openInboxComposer()
+      return
+    }
+    if (now.kind === 'active' || now.kind === 'paused') {
+      setFocusOpen(true)
+      return
+    }
+    if (!now.task) return
+
+    setBusyTaskId(now.task.id)
+    setError('')
+    try {
+      const created = await workApi.createSession(now.task.id, 25 * 60)
+      setSession(created)
+      setFocusOpen(true)
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setBusyTaskId('')
+    }
+  }
+
+  function handleSessionEnded(endedSession) {
+    setSession(null)
+    setFocusOpen(false)
+    setCheckpointSession(endedSession)
   }
 
   async function createTask(title, status = tasks.length === 0 ? 'ready' : 'inbox') {
@@ -353,7 +389,7 @@ export default function WorkScreen() {
         </div>
       )}
 
-      <NowCard state={now} onCreate={(title) => createTask(title, 'ready')} onOpenInbox={openInboxComposer} disabled={busyTaskId === 'creating'} />
+      <NowCard state={now} onCreate={(title) => createTask(title, 'ready')} onAction={handleNowAction} disabled={Boolean(busyTaskId)} />
 
       {tasks.length > 0 && (
         <>
@@ -378,6 +414,16 @@ export default function WorkScreen() {
           <DoneSection tasks={grouped.done} checkpointsByTask={checkpointsByTask} historyState={historyState} onToggleTask={toggleDoneTask} />
         </>
       )}
+
+      <FocusOverlay
+        open={focusOpen}
+        session={session}
+        task={focusTask}
+        onClose={() => setFocusOpen(false)}
+        onSessionChange={setSession}
+        onEnded={handleSessionEnded}
+      />
+      <CheckpointShell open={Boolean(checkpointSession)} task={checkpointTask} onClose={() => setCheckpointSession(null)} />
     </div>
   )
 }

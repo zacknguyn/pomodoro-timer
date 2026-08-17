@@ -36,5 +36,13 @@ export const workApi = {
     body: JSON.stringify(changes),
   }),
   getActiveSession: () => request('/sessions/active'),
+  createSession: (taskId, durationPlannedSeconds) => request('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({ taskId, durationPlannedSeconds }),
+  }),
+  transitionSession: (sessionId, action) => request(`/sessions/${sessionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }),
+  }),
   getTaskCheckpoints: (taskId) => request(`/tasks/${taskId}/checkpoints`),
 }
