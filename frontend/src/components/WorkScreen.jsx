@@ -6,7 +6,6 @@ import {
   ChevronRight,
   ExternalLink,
   Inbox,
-  ListChecks,
   Plus,
   RotateCw,
 } from 'lucide-react'
