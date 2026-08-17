@@ -12,7 +12,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
+    "check": "node --check index.js && node --check src/app.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
     "test": "node --test"
   },
   "engines": {

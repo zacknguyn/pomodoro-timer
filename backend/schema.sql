@@ -63,3 +63,59 @@ CREATE TABLE IF NOT EXISTS group_notes (
   content    TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- MVP workspace model. These tables intentionally coexist with the legacy
+-- account/session tables above while the local-first product is rebuilt.
+CREATE TABLE IF NOT EXISTS tasks (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  title         TEXT NOT NULL CHECK (length(btrim(title)) > 0),
+  status        TEXT NOT NULL DEFAULT 'inbox'
+                  CHECK (status IN ('inbox', 'ready', 'done')),
+  ready_order   INTEGER NOT NULL DEFAULT 0 CHECK (ready_order >= 0),
+  reference_url TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS tasks_status_order_idx
+  ON tasks(status, ready_order, created_at);
+
+CREATE TABLE IF NOT EXISTS focus_sessions (
+  id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  task_id                  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  started_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ended_at                 TIMESTAMPTZ,
+  duration_planned_seconds INTEGER NOT NULL CHECK (duration_planned_seconds > 0),
+  duration_actual_seconds  INTEGER NOT NULL DEFAULT 0 CHECK (duration_actual_seconds >= 0),
+  status                   TEXT NOT NULL DEFAULT 'active'
+                             CHECK (status IN ('active', 'paused', 'ended')),
+  deadline_at              TIMESTAMPTZ,
+  remaining_seconds        INTEGER NOT NULL CHECK (remaining_seconds >= 0),
+  CHECK (
+    (status = 'active' AND deadline_at IS NOT NULL AND ended_at IS NULL)
+    OR (status = 'paused' AND deadline_at IS NULL AND ended_at IS NULL)
+    OR (status = 'ended' AND deadline_at IS NULL AND ended_at IS NOT NULL)
+  )
+);
+
+-- A paused session is still the current session. This stronger invariant
+-- prevents starting another task merely by pausing the first one.
+CREATE UNIQUE INDEX IF NOT EXISTS focus_sessions_one_open_idx
+  ON focus_sessions ((TRUE))
+  WHERE status IN ('active', 'paused');
+
+CREATE INDEX IF NOT EXISTS focus_sessions_task_idx
+  ON focus_sessions(task_id, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS checkpoints (
+  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  task_id      TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  session_id   TEXT NOT NULL UNIQUE REFERENCES focus_sessions(id) ON DELETE CASCADE,
+  what_changed TEXT,
+  next_step    TEXT,
+  outcome      TEXT NOT NULL CHECK (outcome IN ('continue', 'complete')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CHECK (outcome = 'complete' OR length(btrim(next_step)) > 0)
+);
+
+CREATE INDEX IF NOT EXISTS checkpoints_task_created_idx
+  ON checkpoints(task_id, created_at DESC);

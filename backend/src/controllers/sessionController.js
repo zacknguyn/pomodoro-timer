@@ -1,64 +1,31 @@
 import { Router } from 'express';
-import sessionRepository from '../repositories/sessionRepository.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
 import { z } from 'zod';
+import focusSessionRepository from '../repositories/focusSessionRepository.js';
+import { asyncRoute } from '../lib/workspaceApi.js';
 
 const router = Router();
-router.use(authMiddleware);
 
-const sessionSchema = z.object({
-  mode: z.enum(['pomodoro', 'shortBreak', 'longBreak']),
-  duration: z.number(),
-  intent: z.string().optional(),
-  repoName: z.string().optional(),
-  note: z.string().optional(),
-});
+const createSessionSchema = z.object({
+  taskId: z.string().trim().min(1, 'taskId is required'),
+  durationPlannedSeconds: z.number().int().positive().max(86_400),
+}).strict();
 
-router.post('/', async (req, res) => {
-  try {
-    const data = sessionSchema.parse(req.body);
-    const session = await sessionRepository.create({ ...data, userId: req.user.userId });
-    res.status(201).json(session);
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
+const transitionSchema = z.object({
+  action: z.enum(['pause', 'resume', 'end']),
+}).strict();
 
-router.get('/export', async (req, res) => {
-  const tzOffset = parseInt(req.query.tz) || 0;
-  const sessions = await sessionRepository.findByUserId(req.user.userId);
-  const toLocal = (utc) => new Date(new Date(utc).getTime() + tzOffset * 60000).toISOString().replace('T', ' ').slice(0, 19);
-  const rows = [
-    ['id', 'mode', 'duration_minutes', 'intent', 'repo', 'completed_at_local'],
-    ...sessions.map(s => [s.id, s.mode, s.duration, s.intent || '', s.repo_name || '', toLocal(s.completed_at)]),
-  ];
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="pomogit-sessions.csv"');
-  res.send(csv);
-});
+router.post('/', asyncRoute(async (req, res) => {
+  const session = await focusSessionRepository.create(createSessionSchema.parse(req.body));
+  res.status(201).json(session);
+}));
 
-router.get('/stats', async (req, res) => {
-  const tz = parseInt(req.query.tz) || 0;
-  res.json(await sessionRepository.getStats(req.user.userId, tz));
-});
+router.get('/active', asyncRoute(async (_req, res) => {
+  res.json(await focusSessionRepository.findOpen());
+}));
 
-router.get('/heatmap', async (req, res) => {
-  const tz = parseInt(req.query.tz) || 0;
-  res.json(await sessionRepository.getHeatmap(req.user.userId, tz));
-});
-
-router.get('/', async (req, res) => {
-  const { date } = req.query;
-  res.json(date
-    ? await sessionRepository.findByDate(req.user.userId, date)
-    : await sessionRepository.findByUserId(req.user.userId)
-  );
-});
-
-router.delete('/:id', async (req, res) => {
-  await sessionRepository.delete(req.params.id, req.user.userId);
-  res.status(204).end();
-});
+router.patch('/:id', asyncRoute(async (req, res) => {
+  const { action } = transitionSchema.parse(req.body);
+  res.json(await focusSessionRepository.transition(req.params.id, action));
+}));
 
 export default router;
