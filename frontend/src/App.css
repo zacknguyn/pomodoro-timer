@@ -272,6 +272,53 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
 .work-skeleton div:first-child { height: 224px; border-radius: 8px; }
 @keyframes skeleton-shift { to { background-position: -220% 0; } }
 
+.focus-dialog,
+.checkpoint-dialog {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+.focus-dialog { --focus-bg: oklch(12.8% 0.012 264); --focus-fg: oklch(96.5% 0.006 260); background: var(--focus-bg); }
+.focus-dialog[open],
+.checkpoint-dialog[open] { animation: focus-enter 180ms var(--ease-out); }
+.focus-dialog::backdrop,
+.checkpoint-dialog::backdrop { background: color-mix(in oklch, var(--ink) 55%, transparent); }
+.focus-surface { min-height: 100%; display: grid; grid-template-rows: auto 1fr; padding: var(--space-md) clamp(var(--space-md), 4vw, var(--space-2xl)); background: var(--focus-bg); color: var(--focus-fg); }
+.focus-topbar { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); border-bottom: 1px solid color-mix(in oklch, var(--focus-fg) 17%, transparent); }
+.focus-back,
+.focus-end { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); padding: 0; border: 0; color: color-mix(in oklch, var(--focus-fg) 72%, transparent); background: transparent; font-size: 0.8rem; font-weight: 650; cursor: pointer; }
+.focus-back:hover,
+.focus-end:hover { color: var(--focus-fg); }
+.focus-status { display: inline-flex; align-items: center; gap: var(--space-xs); color: color-mix(in oklch, var(--focus-fg) 72%, transparent); font-family: 'Fragment Mono', monospace; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.focus-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.focus-status.is-paused i { background: color-mix(in oklch, var(--focus-fg) 45%, transparent); }
+.focus-main { width: min(1120px, 100%); display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(440px, 1.15fr); grid-template-rows: 1fr auto auto; align-items: center; column-gap: clamp(var(--space-xl), 8vw, 8rem); margin: auto; padding: var(--space-3xl) 0; }
+.focus-task { align-self: center; }
+.focus-task .section-kicker { color: color-mix(in oklch, var(--focus-fg) 48%, transparent); }
+.focus-task h1 { max-width: 14ch; margin: var(--space-md) 0; color: var(--focus-fg); font-size: clamp(2rem, 5vw, 4.8rem); font-weight: 620; line-height: 0.98; letter-spacing: -0.06em; }
+.focus-task > p:last-child { max-width: 38ch; margin: 0; color: color-mix(in oklch, var(--focus-fg) 58%, transparent); line-height: 1.5; }
+.focus-clock-block { display: grid; align-content: center; gap: var(--space-md); }
+.focus-clock { color: var(--focus-fg); font-family: 'Fragment Mono', monospace; font-size: clamp(5rem, 13vw, 10.5rem); font-variant-numeric: tabular-nums; font-weight: 400; line-height: 0.88; letter-spacing: -0.09em; }
+.focus-progress { height: 2px; overflow: hidden; background: color-mix(in oklch, var(--focus-fg) 16%, transparent); transform-origin: left; }
+.focus-progress span { width: 100%; height: 100%; display: block; background: var(--accent); transform-origin: left; transition: transform 250ms linear; }
+.focus-duration { color: color-mix(in oklch, var(--focus-fg) 46%, transparent); font-family: 'Fragment Mono', monospace; font-size: 0.66rem; text-transform: uppercase; }
+.focus-actions { grid-column: 2; display: flex; align-items: center; gap: var(--space-lg); margin-top: var(--space-xl); }
+.focus-error { grid-column: 2; margin: 0 0 var(--space-sm); color: var(--danger); font-size: 0.8rem; }
+.focus-end { padding: 0 var(--space-xs); }
+.checkpoint-dialog { width: min(560px, calc(100% - 2rem)); height: auto; margin: auto; background: transparent; }
+.checkpoint-shell { display: grid; gap: var(--space-md); padding: clamp(var(--space-xl), 6vw, var(--space-3xl)); border-radius: 8px; background: var(--surface); }
+.checkpoint-shell h1 { margin: 0; font-size: clamp(2rem, 6vw, 3.4rem); font-weight: 630; line-height: 1; letter-spacing: -0.055em; }
+.checkpoint-shell > p:not(.section-kicker) { margin: 0; color: var(--ink-soft); line-height: 1.5; }
+.checkpoint-shell > p strong { color: var(--ink); }
+.checkpoint-shell .button-secondary { justify-self: start; margin-top: var(--space-sm); }
+@keyframes focus-enter { from { opacity: 0; transform: translateY(8px); } }
+
 .settings-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-xl); padding: var(--space-xl) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .settings-panel h2 { margin: var(--space-2xs) 0 var(--space-xs); font-size: 1.25rem; }
 .settings-panel p:last-child { margin: 0; color: var(--ink-soft); font-size: 0.85rem; }
@@ -305,6 +352,13 @@ button:disabled { opacity: 0.42; cursor: not-allowed; }
   .capture-row .button-secondary { justify-self: start; }
   .settings-panel { grid-template-columns: 1fr; }
   .theme-choice { justify-self: start; }
+  .focus-surface { padding: max(var(--space-sm), env(safe-area-inset-top)) var(--space-md) max(var(--space-lg), env(safe-area-inset-bottom)); }
+  .focus-main { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; align-content: center; gap: var(--space-2xl); padding: var(--space-xl) 0; }
+  .focus-task h1 { font-size: clamp(2rem, 11vw, 3.4rem); }
+  .focus-clock { font-size: clamp(4.5rem, 25vw, 7rem); }
+  .focus-actions,
+  .focus-error { grid-column: 1; margin-top: 0; }
+  .focus-actions { justify-content: space-between; }
 }
 
 @media (pointer: coarse) {
