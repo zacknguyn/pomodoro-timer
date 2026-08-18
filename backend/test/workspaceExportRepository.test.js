@@ -11,7 +11,7 @@ test('workspace export contains all three MVP record types', async () => {
   const queries = [];
   const client = { query: async (sql) => { queries.push(sql); return responses.shift(); } };
 
-  const snapshot = await workspaceExportRepository.createSnapshot(client, new Date('2026-08-18T00:03:00.000Z'));
+  const snapshot = await workspaceExportRepository.createSnapshot('user-1', client, new Date('2026-08-18T00:03:00.000Z'));
 
   assert.equal(snapshot.schemaVersion, 1);
   assert.equal(snapshot.exportedAt, '2026-08-18T00:03:00.000Z');

@@ -10,7 +10,7 @@ export const BAYER4 = [
 
 export const clamp01 = (value) => Math.max(0, Math.min(1, value))
 
-function hueFill(hue) {
+export function hueFill(hue) {
   const normalizedHue = ((hue % 360) + 360) % 360
   const saturation = 0.85
   const lightness = 0.58
@@ -24,6 +24,27 @@ function hueFill(hue) {
           : normalizedHue < 300 ? [secondary, 0, chroma]
             : [chroma, 0, secondary]
   return [red, green, blue].map((channel) => Math.round((channel + match) * 255))
+}
+
+export function fnv1a(value) {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+export function xorshift32(seed) {
+  let state = seed || 0x9e3779b9
+  return () => {
+    state ^= state << 13
+    state >>>= 0
+    state ^= state >>> 17
+    state ^= state << 5
+    state >>>= 0
+    return state / 0x100000000
+  }
 }
 
 export function fillOf(color) {

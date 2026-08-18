@@ -15,59 +15,24 @@ CREATE TABLE IF NOT EXISTS users (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS settings (
-  user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  pomodoro      INTEGER NOT NULL DEFAULT 25,
-  short_break   INTEGER NOT NULL DEFAULT 5,
-  long_break    INTEGER NOT NULL DEFAULT 15,
-  github_token  TEXT,
-  github_username TEXT
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash  CHAR(64) UNIQUE NOT NULL,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  user_agent  TEXT,
+  ip_address  INET
 );
 
-CREATE TABLE IF NOT EXISTS sessions (
-  id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mode         TEXT NOT NULL,
-  duration     INTEGER NOT NULL,
-  intent       TEXT,
-  repo_name    TEXT,
-  note         TEXT,
-  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+CREATE INDEX IF NOT EXISTS auth_sessions_user_id_idx ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS auth_sessions_expiry_idx ON auth_sessions(expires_at);
 
-CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS sessions_completed_at_idx ON sessions(completed_at);
-
-CREATE TABLE IF NOT EXISTS groups (
-  id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  name           TEXT NOT NULL,
-  repo_full_name TEXT UNIQUE NOT NULL,
-  owner_id       TEXT NOT NULL REFERENCES users(id),
-  status         TEXT NOT NULL DEFAULT 'active',
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  archived_at    TIMESTAMPTZ
-);
-
-CREATE TABLE IF NOT EXISTS group_members (
-  group_id  TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role      TEXT NOT NULL DEFAULT 'member',
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  PRIMARY KEY (group_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS group_notes (
-  id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  group_id   TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content    TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- MVP workspace model. These tables intentionally coexist with the legacy
--- account/session tables above while the local-first product is rebuilt.
+-- Account-owned workspace model.
 CREATE TABLE IF NOT EXISTS tasks (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title         TEXT NOT NULL CHECK (length(btrim(title)) > 0),
   status        TEXT NOT NULL DEFAULT 'inbox'
                   CHECK (status IN ('inbox', 'ready', 'done')),
@@ -77,10 +42,11 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE INDEX IF NOT EXISTS tasks_status_order_idx
-  ON tasks(status, ready_order, created_at);
+  ON tasks(user_id, status, ready_order, created_at);
 
 CREATE TABLE IF NOT EXISTS focus_sessions (
   id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id                  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_id                  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   started_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   ended_at                 TIMESTAMPTZ,
@@ -100,7 +66,7 @@ CREATE TABLE IF NOT EXISTS focus_sessions (
 -- A paused session is still the current session. This stronger invariant
 -- prevents starting another task merely by pausing the first one.
 CREATE UNIQUE INDEX IF NOT EXISTS focus_sessions_one_open_idx
-  ON focus_sessions ((TRUE))
+  ON focus_sessions (user_id)
   WHERE status IN ('active', 'paused');
 
 CREATE INDEX IF NOT EXISTS focus_sessions_task_idx
@@ -108,6 +74,7 @@ CREATE INDEX IF NOT EXISTS focus_sessions_task_idx
 
 CREATE TABLE IF NOT EXISTS checkpoints (
   id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_id      TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   session_id   TEXT NOT NULL UNIQUE REFERENCES focus_sessions(id) ON DELETE CASCADE,
   what_changed TEXT,
@@ -116,6 +83,18 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (outcome = 'complete' OR length(btrim(next_step)) > 0)
 );
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  actor_id    TEXT REFERENCES users(id) ON DELETE SET NULL,
+  action      TEXT NOT NULL,
+  target_id   TEXT,
+  metadata    JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS admin_audit_logs_created_at_idx
+  ON admin_audit_logs(created_at DESC);
 
 CREATE INDEX IF NOT EXISTS checkpoints_task_created_idx
   ON checkpoints(task_id, created_at DESC);

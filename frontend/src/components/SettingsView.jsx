@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Download, Moon, Sun } from 'lucide-react'
+import { Download, LogOut, Moon, Sun } from 'lucide-react'
 import { workApi } from '../lib/workApi'
 import { downloadWorkspaceExport } from '../lib/workspaceExport'
 
-export default function SettingsView({ theme, onTheme }) {
+export default function SettingsView({ theme, onTheme, user, onLogout, localPreview = false }) {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState('')
 
@@ -35,6 +35,10 @@ export default function SettingsView({ theme, onTheme }) {
           <Download size={16} aria-hidden="true" /> {exporting ? 'Preparing…' : 'Export JSON'}
         </button>
       </section>
+      {!localPreview && <section className="settings-panel account-panel" aria-labelledby="account-heading">
+        <div><p className="section-kicker">Account</p><h2 id="account-heading">{user?.email}</h2><p>Your tasks and checkpoints are scoped to this account.</p></div>
+        <button className="button-secondary export-button" type="button" onClick={onLogout}><LogOut size={16} aria-hidden="true" /> Sign out</button>
+      </section>}
     </div>
   )
 }

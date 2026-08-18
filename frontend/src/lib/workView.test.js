@@ -17,10 +17,14 @@ test('Now shows the empty state when no tasks exist', () => {
 test('Now gives an active session first priority', () => {
   const tasks = [readyTask('active'), readyTask('later', 1)]
   const session = { id: 'session-1', taskId: 'active', status: 'active' }
-  const state = deriveNowState({ tasks, session })
+  const checkpointsByTask = {
+    active: [{ outcome: 'continue', nextStep: 'Write the regression test', createdAt: '2026-08-16T10:00:00.000Z' }],
+  }
+  const state = deriveNowState({ tasks, session, checkpointsByTask })
   assert.equal(state.kind, 'active')
   assert.equal(state.task.id, 'active')
-  assert.equal(state.action, 'Add checkpoint')
+  assert.equal(state.action, 'Return to focus')
+  assert.equal(state.checkpoint.nextStep, 'Write the regression test')
 })
 
 test('Now identifies a paused session', () => {
@@ -28,7 +32,7 @@ test('Now identifies a paused session', () => {
   const session = { id: 'session-1', taskId: 'paused', status: 'paused' }
   const state = deriveNowState({ tasks, session })
   assert.equal(state.kind, 'paused')
-  assert.equal(state.action, 'Resume')
+  assert.equal(state.action, 'Return to focus')
 })
 
 test('Now selects the most recent saved next step before Ready order', () => {
@@ -48,4 +52,10 @@ test('Now falls back to the first explicitly ordered Ready task', () => {
   assert.equal(state.kind, 'ready')
   assert.equal(state.task.id, 'first')
   assert.deepEqual(orderReadyTasks(tasks).map((task) => task.id), ['first', 'second'])
+})
+
+test('Now points an idle workspace back to its existing Inbox instead of more capture', () => {
+  const state = deriveNowState({ tasks: [{ ...readyTask('inbox'), status: 'inbox' }], session: null })
+  assert.equal(state.kind, 'idle')
+  assert.equal(state.action, 'Choose from Inbox')
 })

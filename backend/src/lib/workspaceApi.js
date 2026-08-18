@@ -25,6 +25,14 @@ export function workspaceErrorHandler(error, _req, res, _next) {
     return res.status(error.status).json({ error: error.message, code: error.code });
   }
 
+  if (Number.isInteger(error?.status) && error.status >= 400 && error.status < 500) {
+    return res.status(error.status).json({ error: error.message, code: 'request_rejected' });
+  }
+
+  if (error?.code === '23505' && error?.constraint === 'users_email_key') {
+    return res.status(409).json({ error: 'An account with this email already exists', code: 'email_taken' });
+  }
+
   if (error?.code === '23505' && error?.constraint === 'focus_sessions_one_open_idx') {
     return res.status(409).json({
       error: 'A focus session is already active or paused',
@@ -77,5 +85,27 @@ export function checkpointToApi(row) {
     nextStep: row.next_step,
     outcome: row.outcome,
     createdAt: row.created_at,
+  } : null;
+}
+
+export function reviewEntryToApi(row) {
+  return row ? {
+    id: row.id,
+    outcome: row.outcome,
+    whatChanged: row.what_changed,
+    nextStep: row.next_step,
+    createdAt: row.created_at,
+    task: {
+      id: row.task_id,
+      title: row.task_title,
+      status: row.task_status,
+      referenceUrl: row.task_reference_url,
+    },
+    session: {
+      id: row.session_id,
+      startedAt: row.session_started_at,
+      endedAt: row.session_ended_at,
+      durationActualSeconds: row.duration_actual_seconds,
+    },
   } : null;
 }

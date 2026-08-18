@@ -24,34 +24,34 @@ const updateTaskSchema = z.object({
 
 router.get('/', asyncRoute(async (req, res) => {
   const status = req.query.status === undefined ? null : statusSchema.parse(req.query.status);
-  res.json(await taskRepository.findAll(status));
+  res.json(await taskRepository.findAll(req.user.id, status));
 }));
 
 router.post('/', asyncRoute(async (req, res) => {
-  const task = await taskRepository.create(createTaskSchema.parse(req.body));
+  const task = await taskRepository.create(req.user.id, createTaskSchema.parse(req.body));
   res.status(201).json(task);
 }));
 
 router.get('/:id/checkpoints', asyncRoute(async (req, res) => {
-  const task = await taskRepository.findById(req.params.id);
+  const task = await taskRepository.findById(req.user.id, req.params.id);
   if (!task) throw new ApiError(404, 'Task not found', 'task_not_found');
-  res.json(await checkpointRepository.findByTaskId(req.params.id));
+  res.json(await checkpointRepository.findByTaskId(req.user.id, req.params.id));
 }));
 
 router.get('/:id', asyncRoute(async (req, res) => {
-  const task = await taskRepository.findById(req.params.id);
+  const task = await taskRepository.findById(req.user.id, req.params.id);
   if (!task) throw new ApiError(404, 'Task not found', 'task_not_found');
   res.json(task);
 }));
 
 router.patch('/:id', asyncRoute(async (req, res) => {
-  const task = await taskRepository.update(req.params.id, updateTaskSchema.parse(req.body));
+  const task = await taskRepository.update(req.user.id, req.params.id, updateTaskSchema.parse(req.body));
   if (!task) throw new ApiError(404, 'Task not found', 'task_not_found');
   res.json(task);
 }));
 
 router.delete('/:id', asyncRoute(async (req, res) => {
-  const deleted = await taskRepository.delete(req.params.id);
+  const deleted = await taskRepository.delete(req.user.id, req.params.id);
   if (!deleted) throw new ApiError(404, 'Task not found', 'task_not_found');
   res.status(204).end();
 }));

@@ -21,8 +21,12 @@ export const checkpointSchema = z.object({
   }
 });
 
+router.get('/', asyncRoute(async (req, res) => {
+  res.json(await checkpointRepository.findAll(req.user.id));
+}));
+
 router.post('/', asyncRoute(async (req, res) => {
-  const checkpoint = await checkpointRepository.create(checkpointSchema.parse(req.body));
+  const checkpoint = await checkpointRepository.create(req.user.id, checkpointSchema.parse(req.body));
   res.status(201).json(checkpoint);
 }));
 
