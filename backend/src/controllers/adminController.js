@@ -15,6 +15,12 @@ const adminOverviewLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+const adminUsersLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.use(authMiddleware, requireRole('admin', 'superadmin'));
 router.use((_req, res, next) => {
@@ -58,7 +64,7 @@ router.get('/overview', adminOverviewLimiter, asyncRoute(async (_req, res) => {
   });
 }));
 
-router.get('/users', asyncRoute(async (_req, res) => {
+router.get('/users', adminUsersLimiter, asyncRoute(async (_req, res) => {
   const { rows } = await pool.query(`
     SELECT u.id, u.email, u.display_name, u.banned, u.role, u.created_at,
       COUNT(DISTINCT t.id)::int AS task_count,
