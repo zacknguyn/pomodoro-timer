@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import pool from '../lib/db.js';
 import userRepository from '../repositories/userRepository.js';
@@ -8,6 +9,12 @@ import { ApiError, asyncRoute } from '../lib/workspaceApi.js';
 
 const router = Router();
 const roleSchema = z.object({ role: z.enum(['user', 'admin']) }).strict();
+const adminOverviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.use(authMiddleware, requireRole('admin', 'superadmin'));
 router.use((_req, res, next) => {
@@ -23,7 +30,7 @@ async function audit(actorId, action, targetId, metadata = {}) {
   );
 }
 
-router.get('/overview', asyncRoute(async (_req, res) => {
+router.get('/overview', adminOverviewLimiter, asyncRoute(async (_req, res) => {
   const [summary, activity, auditRows] = await Promise.all([
     pool.query(`SELECT
       (SELECT COUNT(*) FROM users) AS users,
