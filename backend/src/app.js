@@ -10,6 +10,7 @@ import usersController from './controllers/usersController.js';
 import adminController from './controllers/adminController.js';
 import taskController from './controllers/taskController.js';
 import checkpointController from './controllers/checkpointController.js';
+import workspaceExportController from './controllers/workspaceExportController.js';
 import { workspaceErrorHandler } from './lib/workspaceApi.js';
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api/auth', authLimiter, authController);
 app.use('/api/tasks', taskController);
 app.use('/api/sessions', sessionController);
 app.use('/api/checkpoints', checkpointController);
+app.use('/api/export', workspaceExportController);
 
 // Legacy routes remain mounted during the phased rebuild, but are not part of
 // the Phase 1 MVP contract above.
