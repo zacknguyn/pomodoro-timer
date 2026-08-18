@@ -18,12 +18,16 @@ export function deriveNowState({ tasks, session, checkpointsByTask = {} }) {
 
   if (session) {
     const task = taskById.get(session.taskId)
+    const checkpoint = (checkpointsByTask[session.taskId] || [])
+      .filter((item) => item.outcome === 'continue' && item.nextStep?.trim())
+      .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))[0] || null
     return {
       kind: session.status === 'paused' ? 'paused' : 'active',
       task,
       session,
-      eyebrow: session.status === 'paused' ? 'Paused session' : 'In focus',
-      action: session.status === 'paused' ? 'Resume' : 'Add checkpoint',
+      checkpoint,
+      eyebrow: session.status === 'paused' ? 'Paused' : 'Focusing',
+      action: 'Return to focus',
     }
   }
 
@@ -34,7 +38,7 @@ export function deriveNowState({ tasks, session, checkpointsByTask = {} }) {
       task: continuation.task,
       checkpoint: continuation.checkpoint,
       eyebrow: 'Resume from here',
-      action: 'Continue task',
+      action: 'Start focus',
     }
   }
 
@@ -43,15 +47,15 @@ export function deriveNowState({ tasks, session, checkpointsByTask = {} }) {
     return {
       kind: 'ready',
       task: firstReady,
-      eyebrow: 'First in Ready',
+      eyebrow: 'Up next',
       action: 'Start focus',
     }
   }
 
   return {
     kind: tasks.length === 0 ? 'empty' : 'idle',
-    eyebrow: tasks.length === 0 ? 'Start here' : 'Nothing is ready',
-    action: 'New task',
+    eyebrow: tasks.length === 0 ? 'Start here' : 'Inbox waiting',
+    action: tasks.length === 0 ? 'New task' : 'Choose from Inbox',
   }
 }
 

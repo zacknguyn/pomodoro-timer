@@ -1,0 +1,160 @@
+/* Pomogit control system: hierarchy without texture behind labels. */
+.dither-button,
+.action-quiet,
+.topbar-session,
+.theme-button,
+.mobile-settings-button,
+.duration-picker button,
+.theme-options button,
+.evidence-types button,
+.disposition-picker button,
+.worklog-filters button,
+.canvas-toolbar button,
+.home-ready li > button,
+.note-to-task {
+  border: 0;
+  border-radius: 5px;
+  background-image: none;
+  box-shadow: none;
+  cursor: pointer;
+  transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out), opacity 120ms var(--ease-out);
+}
+
+.dither-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 5px;
+  color: oklch(98% 0.004 270);
+  background: oklch(57% 0.22 255);
+  box-shadow: none;
+  font-weight: 700;
+}
+.dither-button:hover { background: oklch(53% 0.23 255); }
+.dither-button:active { background: oklch(49% 0.21 255); }
+.dither-button:disabled, button:disabled { opacity: 0.42; cursor: not-allowed; }
+.local-section .dither-button { color: oklch(98% 0.004 270); background: oklch(57% 0.22 255); }
+.dither-button .dither-button-canvas { opacity: 0.78; }
+.dither-button:hover .dither-button-canvas { opacity: 0.94; }
+
+.action-quiet,
+.topbar-session,
+.theme-button,
+.mobile-settings-button,
+.duration-picker button,
+.theme-options button,
+.evidence-types button,
+.disposition-picker button,
+.worklog-filters button,
+.canvas-toolbar button,
+.home-ready li > button,
+.note-to-task { color: var(--ink-soft); background: var(--paper-muted); }
+.action-quiet:hover,
+.topbar-session:hover,
+.theme-button:hover,
+.mobile-settings-button:hover,
+.duration-picker button:hover,
+.theme-options button:hover,
+.evidence-types button:hover,
+.disposition-picker button:hover,
+.worklog-filters button:hover,
+.canvas-toolbar button:hover,
+.home-ready li > button:hover,
+.note-to-task:hover { color: var(--ink); background: var(--control-hover-bottom); background-image: none; }
+
+.duration-picker button[aria-pressed='true'],
+.theme-options button[aria-pressed='true'],
+.evidence-types button[aria-pressed='true'],
+.disposition-picker button[aria-pressed='true'],
+.worklog-filters button[aria-pressed='true'],
+.canvas-toolbar button[aria-pressed='true'] { color: oklch(98% 0.004 270); background: var(--primary-bottom); background-image: none; }
+
+.app-field { position: relative; width: 100%; display: block; overflow: hidden; border: 1px solid var(--control-border); border-radius: 5px; background: var(--paper-raised); }
+.app-field > input,
+.app-field > textarea,
+.app-field > select { position: relative; width: 100%; border: 0 !important; border-radius: 0 !important; outline: 0 !important; color: var(--ink); background: transparent !important; box-shadow: none !important; }
+.app-field:focus-within { border-color: var(--forest); outline: 2px solid color-mix(in oklch, var(--forest) 30%, transparent); outline-offset: 1px; }
+.app-field:has([aria-invalid='true']) { border-color: var(--error); }
+.app-field.is-textarea, .app-field.is-textarea textarea { min-height: 104px; }
+.history-search .app-field { flex: 1; border: 0; background: transparent; }
+.history-search .app-field:focus-within { outline: 0; }
+
+.journey-switcher button,
+.sidebar-page-nav button,
+.sidebar-utilities button,
+.mobile-tabbar button { border: 0; background: transparent; background-image: none; box-shadow: none; }
+.journey-switcher button { color: var(--ink-soft); background: var(--paper-muted); }
+.journey-switcher button:hover { color: var(--ink); background: var(--control-hover-bottom); background-image: none; }
+.journey-switcher button.shortcut-primary { color: oklch(98% 0.004 270); background: var(--primary-bottom); background-image: none; }
+.sidebar-page-nav { gap: 2px; }
+.sidebar-page-nav button,
+.sidebar-utilities button { border-radius: 5px; color: var(--ink-faint); background: transparent; }
+.sidebar-page-nav button:hover,
+.sidebar-utilities button:hover { color: var(--ink); background: var(--paper-muted); background-image: none; }
+.sidebar-page-nav button.active,
+.sidebar-utilities button.active { color: var(--ink); background: var(--paper-muted); background-image: none; }
+.sidebar-page-nav button.active svg { color: var(--forest); }
+.sidebar-page-nav button.active::after { content: ''; position: absolute; right: var(--space-sm); width: 5px; height: 5px; border-radius: 50%; background: var(--forest); }
+
+.mobile-tabbar { gap: 0; border-color: var(--line); background: var(--paper-raised); }
+.mobile-tabbar button { color: var(--ink-faint); background: transparent; }
+.mobile-tabbar button:hover { color: var(--ink); background: var(--paper-muted); background-image: none; }
+.mobile-tabbar button.active { color: var(--forest); background: transparent; background-image: none; }
+.mobile-tabbar button.active::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.mobile-tabbar button.active .nav-live { background: var(--forest); box-shadow: 0 0 0 3px var(--paper-raised); }
+
+.home-command { border: 0; border-radius: 0; background: var(--paper-muted); box-shadow: none; }
+.home-command .dither-gradient { right: 42%; opacity: 0.82; mask-image: linear-gradient(90deg, black 0 58%, transparent 100%); }
+:root[data-theme='dark'] .home-command .dither-gradient { opacity: 0.56; }
+.active-session-strip { min-height: 68px; margin: var(--space-md) 0; padding: var(--space-sm) var(--space-md); border: 0; border-radius: 6px; background: var(--leaf-soft); }
+.active-session-strip.is-empty { border: 0; background: var(--paper-muted); }
+.kanban-board { gap: var(--space-lg); }
+.kanban-column { min-height: 360px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.kanban-column > header { padding: var(--space-sm) 0 var(--space-md); border-top: 1px solid var(--line-strong); }
+.task-card { border-color: var(--line); border-radius: 6px; background: var(--paper-raised); box-shadow: none; }
+.task-card-top button { color: var(--ink-faint); background: transparent; background-image: none; }
+.task-card-top button:hover { color: var(--ink); background: var(--paper-muted); background-image: none; }
+.canvas-toolbar { border-radius: 6px 6px 0 0; background: var(--paper-raised); backdrop-filter: none; }
+.canvas-toolbar button { background: transparent; }
+.canvas-toolbar button:hover { background: var(--paper-muted); background-image: none; }
+.canvas-toolbar button[aria-pressed='true'] { color: oklch(98% 0.004 270); background: var(--primary-bottom); background-image: none; }
+.canvas-task-pin { border-radius: 6px; background: var(--paper-raised); box-shadow: 0 8px 20px color-mix(in oklch, var(--ink) 8%, transparent); }
+.context-menu { border-radius: 6px; background: var(--paper-raised); background-image: none; box-shadow: 0 12px 32px color-mix(in oklch, var(--ink) 14%, transparent); backdrop-filter: none; }
+.context-menu button { background: transparent; background-image: none; box-shadow: none; }
+.context-menu button:hover, .context-menu button:focus-visible { background: var(--paper-muted); background-image: none; }
+.settings-view { max-width: 820px; }
+.settings-section { grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+.settings-section > .action-quiet { justify-self: start; }
+
+.focus-shell { display: block; background: oklch(14% 0.025 265); }
+.focus-shell .workspace-content { display: block; min-height: 100vh; margin: 0; border: 0; border-radius: 0; background: transparent; }
+.focus-shell .workspace-stage { min-height: 100vh; overflow: auto; }
+.focus-view { min-height: 100vh; padding: clamp(2rem, 6vw, 5rem); color: oklch(96% 0.008 270); background: oklch(14% 0.025 265); }
+.focus-content { color: oklch(96% 0.008 270); }
+.focus-content h1, .focus-clock { color: oklch(96% 0.008 270); }
+.focus-meta { color: oklch(75% 0.025 255); }
+.focus-progress { background: oklch(34% 0.035 260); }
+.focus-progress span { background: oklch(68% 0.18 250); }
+.focus-controls > button:not(.dither-button) { border: 0; border-radius: 5px; color: oklch(92% 0.01 270); background: oklch(25% 0.025 265); background-image: none; box-shadow: none; }
+.focus-controls > button:not(.dither-button):hover { color: oklch(98% 0.004 270); background: oklch(31% 0.035 260); background-image: none; }
+.focus-controls > .dither-button.focus-main-action { color: oklch(98% 0.004 270); background: oklch(57% 0.22 255); background-image: none; box-shadow: none; }
+.evidence-view { min-height: 100vh; color: var(--ink); background: var(--paper); }
+.focus-shell:has(.evidence-view) { background: var(--paper); }
+
+@media (min-width: 640px) {
+  .settings-section { grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr); align-items: center; }
+  .settings-section > .action-quiet { justify-self: end; }
+}
+
+@media (max-width: 899px) {
+  .home-command .dither-gradient { right: 0; bottom: 28%; opacity: 0.56; mask-image: linear-gradient(180deg, black 0 45%, transparent 100%); }
+  .mobile-settings-button { color: var(--ink-soft); background: var(--paper-muted); }
+  .focus-view, .evidence-view { padding-bottom: var(--space-3xl); }
+}

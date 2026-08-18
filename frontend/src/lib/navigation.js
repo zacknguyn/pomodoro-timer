@@ -1,4 +1,4 @@
-export const WORKSPACE_VIEWS = ['work', 'settings']
+export const WORKSPACE_VIEWS = ['work', 'tasks', 'review', 'profile', 'admin']
 
 export function resolveInitialView({ requested, workspaceOpened }) {
   if (!workspaceOpened) return 'landing'
