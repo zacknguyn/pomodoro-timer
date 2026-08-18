@@ -1,43 +1,58 @@
 import { Router } from 'express';
-import authService from '../services/authService.js';
 import { z } from 'zod';
-import rateLimit from 'express-rate-limit';
+import authService from '../services/authService.js';
+import authSessionRepository, { hashSessionToken } from '../repositories/authSessionRepository.js';
+import { authMiddleware, getSessionToken, SESSION_COOKIE } from '../middleware/authMiddleware.js';
+import { asyncRoute } from '../lib/workspaceApi.js';
 
 const router = Router();
-
-const authLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many attempts, please try again in a minute' },
-});
-
-router.use(authLimiter);
-
 const authSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters')
+  email: z.string().trim().email().max(254),
+  password: z.string().min(12, 'Use at least 12 characters').max(128),
+}).strict();
+
+router.use((_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
 });
 
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password } = authSchema.parse(req.body);
-    const result = await authService.register(email, password);
-    res.status(201).json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+function cookieOptions(expiresAt) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    expires: expiresAt,
+  };
+}
+
+function requestContext(req) {
+  return {
+    userAgent: req.get('user-agent')?.slice(0, 500),
+    ipAddress: req.ip,
+  };
+}
+
+async function authenticate(req, res, mode) {
+  const input = authSchema.parse(req.body);
+  const result = await authService[mode](input.email, input.password, requestContext(req));
+  res.cookie(SESSION_COOKIE, result.token, cookieOptions(result.expiresAt));
+  res.status(mode === 'register' ? 201 : 200).json({ user: result.user });
+}
+
+router.post('/register', asyncRoute((req, res) => authenticate(req, res, 'register')));
+router.post('/login', asyncRoute((req, res) => authenticate(req, res, 'login')));
+
+router.get('/me', authMiddleware, (req, res) => {
+  const { id, email, role } = req.user;
+  res.json({ user: { id, email, role } });
 });
 
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = authSchema.parse(req.body);
-    const result = await authService.login(email, password);
-    res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.post('/logout', asyncRoute(async (req, res) => {
+  const token = getSessionToken(req);
+  if (token) await authSessionRepository.revoke(hashSessionToken(token));
+  res.clearCookie(SESSION_COOKIE, cookieOptions(new Date(0)));
+  res.status(204).end();
+}));
 
 export default router;

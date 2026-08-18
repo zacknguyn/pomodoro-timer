@@ -15,17 +15,17 @@ const transitionSchema = z.object({
 }).strict();
 
 router.post('/', asyncRoute(async (req, res) => {
-  const session = await focusSessionRepository.create(createSessionSchema.parse(req.body));
+  const session = await focusSessionRepository.create(req.user.id, createSessionSchema.parse(req.body));
   res.status(201).json(session);
 }));
 
-router.get('/active', asyncRoute(async (_req, res) => {
-  res.json(await focusSessionRepository.findOpen());
+router.get('/active', asyncRoute(async (req, res) => {
+  res.json(await focusSessionRepository.findOpen(req.user.id));
 }));
 
 router.patch('/:id', asyncRoute(async (req, res) => {
   const { action } = transitionSchema.parse(req.body);
-  res.json(await focusSessionRepository.transition(req.params.id, action));
+  res.json(await focusSessionRepository.transition(req.user.id, req.params.id, action));
 }));
 
 export default router;

@@ -12,21 +12,25 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check src/app.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
+    "db:init": "node scripts/database.js init",
+    "db:migrate": "node scripts/database.js migrate",
+    "db:cleanup-legacy": "node scripts/database.js cleanup-legacy",
+    "admin:promote": "node scripts/promoteAdmin.js",
+    "check": "node --check index.js && node --check scripts/*.js && node --check src/app.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
     "test": "node --test"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "@octokit/rest": "^22.0.1",
     "@vendia/serverless-express": "^4.12.6",
+    "argon2": "^0.45.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
     "express-rate-limit": "^7.5.0",
-    "jsonwebtoken": "^9.0.2",
+    "helmet": "^8.3.0",
     "pg": "^8.13.3",
     "zod": "^3.23.8"
   }

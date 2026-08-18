@@ -2,37 +2,38 @@ import pool from '../lib/db.js';
 import { ApiError, sessionToApi } from '../lib/workspaceApi.js';
 
 class FocusSessionRepository {
-  async findOpen(client = pool) {
+  async findOpen(userId, client = pool) {
     const { rows } = await client.query(
       `SELECT * FROM focus_sessions
-       WHERE status IN ('active', 'paused')
-       ORDER BY started_at DESC LIMIT 1`
+       WHERE user_id = $1 AND status IN ('active', 'paused')
+       ORDER BY started_at DESC LIMIT 1`,
+      [userId]
     );
     return sessionToApi(rows[0]);
   }
 
-  async findById(id, client = pool, lock = false) {
+  async findById(userId, id, client = pool, lock = false) {
     const { rows } = await client.query(
-      `SELECT * FROM focus_sessions WHERE id = $1${lock ? ' FOR UPDATE' : ''}`,
-      [id]
+      `SELECT * FROM focus_sessions WHERE user_id = $1 AND id = $2${lock ? ' FOR UPDATE' : ''}`,
+      [userId, id]
     );
     return rows[0] ?? null;
   }
 
-  async create({ taskId, durationPlannedSeconds }) {
+  async create(userId, { taskId, durationPlannedSeconds }) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       const { rows: taskRows } = await client.query(
-        'SELECT id, status FROM tasks WHERE id = $1 FOR UPDATE',
-        [taskId]
+        'SELECT id, status FROM tasks WHERE user_id = $1 AND id = $2 FOR UPDATE',
+        [userId, taskId]
       );
       if (!taskRows[0]) throw new ApiError(404, 'Task not found', 'task_not_found');
       if (taskRows[0].status === 'done') {
         throw new ApiError(409, 'A completed task must be reopened before focusing', 'task_completed');
       }
 
-      const open = await this.findOpen(client);
+      const open = await this.findOpen(userId, client);
       if (open) {
         throw new ApiError(409, 'A focus session is already active or paused', 'active_session_exists');
       }
@@ -40,10 +41,10 @@ class FocusSessionRepository {
       const deadline = new Date(Date.now() + durationPlannedSeconds * 1000);
       const { rows } = await client.query(
         `INSERT INTO focus_sessions (
-           task_id, duration_planned_seconds, duration_actual_seconds,
+           user_id, task_id, duration_planned_seconds, duration_actual_seconds,
            status, deadline_at, remaining_seconds
-         ) VALUES ($1, $2, 0, 'active', $3, $2) RETURNING *`,
-        [taskId, durationPlannedSeconds, deadline]
+         ) VALUES ($1, $2, $3, 0, 'active', $4, $3) RETURNING *`,
+        [userId, taskId, durationPlannedSeconds, deadline]
       );
       await client.query('COMMIT');
       return sessionToApi(rows[0]);
@@ -55,11 +56,11 @@ class FocusSessionRepository {
     }
   }
 
-  async transition(id, action) {
+  async transition(userId, id, action) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const session = await this.findById(id, client, true);
+      const session = await this.findById(userId, id, client, true);
       if (!session) throw new ApiError(404, 'Focus session not found', 'session_not_found');
 
       const now = new Date();

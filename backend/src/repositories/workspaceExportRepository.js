@@ -2,15 +2,18 @@ import pool from '../lib/db.js';
 import { checkpointToApi, sessionToApi, taskToApi } from '../lib/workspaceApi.js';
 
 class WorkspaceExportRepository {
-  async createSnapshot(client = pool, now = new Date()) {
+  async createSnapshot(userId, client = pool, now = new Date()) {
     const { rows: taskRows } = await client.query(
-      'SELECT * FROM tasks ORDER BY created_at, id'
+      'SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at, id',
+      [userId]
     );
     const { rows: sessionRows } = await client.query(
-      'SELECT * FROM focus_sessions ORDER BY started_at, id'
+      'SELECT * FROM focus_sessions WHERE user_id = $1 ORDER BY started_at, id',
+      [userId]
     );
     const { rows: checkpointRows } = await client.query(
-      'SELECT * FROM checkpoints ORDER BY created_at, id'
+      'SELECT * FROM checkpoints WHERE user_id = $1 ORDER BY created_at, id',
+      [userId]
     );
 
     return {

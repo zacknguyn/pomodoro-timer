@@ -2,7 +2,7 @@ import pool from '../lib/db.js';
 
 class UserRepository {
   async findAll() {
-    const { rows } = await pool.query('SELECT id, email, banned, created_at FROM users ORDER BY created_at DESC');
+    const { rows } = await pool.query('SELECT id, email, display_name, role, banned, created_at FROM users ORDER BY created_at DESC');
     return rows;
   }
 
@@ -26,9 +26,7 @@ class UserRepository {
       'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
       [email, password]
     );
-    const user = rows[0];
-    await pool.query('INSERT INTO settings (user_id) VALUES ($1)', [user.id]);
-    return user;
+    return rows[0];
   }
 
   async updateProfile(id, { displayName, bio, avatarStyle }) {
@@ -48,6 +46,10 @@ class UserRepository {
 
   async setRole(id, role) {
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
+  }
+
+  async setPassword(id, password) {
+    await pool.query('UPDATE users SET password = $1 WHERE id = $2', [password, id]);
   }
 
   async delete(id) {
