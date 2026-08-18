@@ -26,6 +26,7 @@ async function request(path, options = {}) {
 }
 
 export const workApi = {
+  exportWorkspace: () => request('/export'),
   listTasks: () => request('/tasks'),
   createTask: (task) => request('/tasks', {
     method: 'POST',

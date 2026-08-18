@@ -1,40 +1,30 @@
 import { useEffect, useState } from 'react'
-import { BriefcaseBusiness, Moon, Settings, Sun } from 'lucide-react'
+import { BriefcaseBusiness, Settings } from 'lucide-react'
+import LandingScreen from './components/LandingScreen'
+import SettingsView from './components/SettingsView'
 import WorkScreen from './components/WorkScreen'
+import { resolveInitialView } from './lib/navigation'
+import { hasOpenedWorkspace, markWorkspaceOpened, readTheme, writeTheme } from './lib/preferences'
 
 const VALID_VIEWS = ['work', 'settings']
 
-function initialView() {
+function requestedView() {
   const requested = window.location.hash.slice(1)
-  return VALID_VIEWS.includes(requested) ? requested : 'work'
+  return VALID_VIEWS.includes(requested) ? requested : ''
 }
 
 function Brand() {
   return <span className="app-brand"><img src="/pomogit-logo.png" alt="" width="28" height="28" /><strong>Pomogit</strong></span>
 }
 
-function SettingsView({ theme, onTheme }) {
-  return (
-    <div className="settings-view">
-      <header className="work-header"><div><p className="page-kicker">Workspace / Settings</p><h1>Settings</h1><p>Choose the viewing mode that keeps the interface quiet.</p></div></header>
-      <section className="settings-panel" aria-labelledby="appearance-heading">
-        <div><p className="section-kicker">Appearance</p><h2 id="appearance-heading">Theme</h2><p>Use the palette that fits your current environment.</p></div>
-        <div className="theme-choice" aria-label="Theme">
-          <button type="button" aria-pressed={theme === 'light'} onClick={() => onTheme('light')}><Sun size={17} /> Light</button>
-          <button type="button" aria-pressed={theme === 'dark'} onClick={() => onTheme('dark')}><Moon size={17} /> Dark</button>
-        </div>
-      </section>
-    </div>
-  )
-}
-
 export default function App() {
-  const [view, setView] = useState(initialView)
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light')
+  const [workspaceOpened, setWorkspaceOpened] = useState(() => hasOpenedWorkspace(localStorage))
+  const [view, setView] = useState(() => resolveInitialView({ requested: requestedView(), workspaceOpened: hasOpenedWorkspace(localStorage) }))
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || readTheme(localStorage, false))
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    localStorage.setItem('stillpoint.theme', theme)
+    writeTheme(localStorage, theme)
   }, [theme])
 
   useEffect(() => {
@@ -47,6 +37,16 @@ export default function App() {
     setView(nextView)
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${nextView}`)
     document.querySelector('.workspace-stage')?.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  function openWorkspace() {
+    markWorkspaceOpened(localStorage)
+    setWorkspaceOpened(true)
+    navigate('work')
+  }
+
+  if (!workspaceOpened || view === 'landing') {
+    return <LandingScreen onOpen={openWorkspace} />
   }
 
   return (

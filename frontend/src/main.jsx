@@ -5,8 +5,9 @@ import '@fontsource/fragment-mono/400.css'
 import './index.css'
 import './App.css'
 import App from './App'
+import { readTheme } from './lib/preferences'
 
-const initialTheme = localStorage.getItem('stillpoint.theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+const initialTheme = readTheme(localStorage, matchMedia('(prefers-color-scheme: dark)').matches)
 document.documentElement.dataset.theme = initialTheme
 
 createRoot(document.getElementById('root')).render(
