@@ -1,46 +1,24 @@
-import { ArrowRight } from 'lucide-react'
-import { DitherButton } from './dither-kit/DitherButton'
-import { DitherGradient } from './dither-kit/DitherGradient'
+import { createElement, useEffect, useRef } from 'react'
+import { ArrowRight, Check, Clock, Folder, Github } from 'lucide-react'
+import './PublicScreens.css'
 
-function WorkPreview() {
-  return (
-    <div className="landing-preview" role="img" aria-label="Preview of the Pomogit Work screen">
-      <div className="preview-rail">
-        <span className="preview-brand"><img src="/pomogit-logo.png" alt="" /> Pomogit</span>
-        <span className="preview-nav is-active">Work</span>
-        <span className="preview-nav">Settings</span>
-      </div>
-      <div className="preview-stage">
-        <header><span>Workspace / Work</span><strong>Work</strong></header>
-        <div className="preview-now">
-          <DitherGradient from="blue" to="transparent" direction="right" cell={3} opacity={0.44} bloom="off" />
-          <span>NOW · RESUME FROM HERE</span>
-          <strong>Finish the retry path</strong>
-          <small>Next: Add the regression test and open the PR.</small>
-          <i>Continue task →</i>
-        </div>
-        <div className="preview-ready"><span>UP NEXT</span><strong>Ready</strong><b>3</b></div>
-        <div className="preview-row"><em>02</em><span>Add callback timeout coverage</span></div>
-        <div className="preview-row"><em>03</em><span>Document the recovery behavior</span></div>
-      </div>
-    </div>
-  )
-}
-
-export default function LandingScreen({ onOpen }) {
-  return (
-    <main className="landing-screen">
-      <header className="landing-brand"><img src="/pomogit-logo.png" alt="" /><strong>Pomogit</strong></header>
-      <section className="landing-copy" aria-labelledby="landing-title">
-        <p className="section-kicker">Checkpoint-based focus</p>
-        <h1 id="landing-title">Pick up where<br />you left off.</h1>
-        <p>Pomogit helps solo developers focus on one task, record what changed, and return without rebuilding context.</p>
-        <DitherButton className="landing-open" variant="solid" onClick={onOpen}>
-          Open workspace <ArrowRight size={17} aria-hidden="true" />
-        </DitherButton>
-      </section>
-      <WorkPreview />
-      <span className="landing-index" aria-hidden="true">01 / WORK / CHECKPOINT / RESUME</span>
-    </main>
-  )
+export default function LandingScreen({ onNavigate, onOpen, onDemo, palette, theme, reducedMotion }) {
+  const root = useRef(null)
+  useEffect(() => {
+    if (reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('pg-visible'); observer.unobserve(entry.target) } }), { threshold: 0.08 })
+    root.current.querySelectorAll('[data-reveal]').forEach((element) => { element.classList.add('pg-reveal'); observer.observe(element) })
+    return () => observer.disconnect()
+  }, [reducedMotion])
+  const variant = `${palette}-${theme}`
+  return <div ref={root} className="pg-public pg-home">
+    <header className="pg-header"><a className="pg-brand" href="#landing"><img src="/pomogit-logo.png" alt="" />Pomogit</a><nav aria-label="Product"><a href="#how-it-works" onClick={(event) => { event.preventDefault(); document.getElementById('how-it-works').scrollIntoView({ behavior: reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }}>How it works</a><button onClick={() => onNavigate('login')}>Log in</button><button className="pg-primary" onClick={onOpen}>Get started<ArrowRight size={16} /></button></nav></header>
+    <main><section className="pg-hero"><div className="pg-hero-copy"><p className="pg-eyebrow">Your work. A little more in focus.</p><h1>Leave yourself<br />a way back.</h1><p>Capture the task. Make room to focus. Save the next step, so tomorrow starts where you left off.</p><div className="pg-actions"><button className="pg-primary" onClick={onOpen}>Create your workspace<ArrowRight size={17} /></button><button onClick={onDemo}>Try the local workspace</button></div><p className="pg-caption"><Github size={14} />Made for the work around your GitHub projects.</p></div>
+    <figure className="pg-product-image"><picture><source media="(max-width: 760px)" srcSet={`/preview-assets/workspace-violet-${variant}-mobile.png`} /><img src={`/preview-assets/workspace-violet-${variant}-desktop.png`} alt="Workspace with a current task, unfinished work, and floating focus timer" width="1440" height="914" /></picture><figcaption>Your next step and your focus, in the same place.</figcaption></figure></section>
+    <section id="how-it-works" className="pg-section" data-reveal><p className="pg-eyebrow">One small loop</p><h2>Less arranging.<br />More getting back to it.</h2><div className="pg-steps">{[[Folder,'01','Capture the work','Put the idea in Inbox. Add a project and a next step when you’re ready.'],[Clock,'02','Give one task your attention','Choose a task in Workspace. Start focus without losing the rest of your queue.'],[Check,'03','Leave a useful checkpoint','Finish quickly. Add a note now or later, and keep the next step close.']].map(([Icon,number,title,copy]) => <article key={number}><span className="pg-step-icon">{createElement(Icon, { size: 22 })}</span><p className="pg-eyebrow">{number}</p><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
+    <section className="pg-section pg-board-showcase" data-reveal><div><p className="pg-eyebrow">A place for everything unfinished</p><h2>Organize once.<br />Choose what’s next.</h2><p>Inbox → Ready → In progress → Done. Move a card, filter by project, and open the details without losing your place.</p><button onClick={() => onNavigate('tasks')}>Explore the board<ArrowRight size={16} /></button></div><figure className="pg-product-image"><picture><source media="(max-width: 760px)" srcSet={`/preview-assets/board-violet-${variant}-mobile.png`} /><img src={`/preview-assets/board-violet-${variant}-desktop.png`} alt="Board with four status columns and movable task cards" width="1440" height="914" loading="lazy" /></picture></figure></section>
+    <section className="pg-section pg-profile-pitch" data-reveal><p className="pg-eyebrow">A developer, beyond the commit count</p><h2>Make your progress personal.</h2><p>A Dither avatar, featured work, and a record of the effort behind it. Choose what you want your profile to say.</p><button onClick={() => onNavigate('profile')}>Explore your profile<ArrowRight size={16} /></button></section>
+    <section className="pg-section pg-faq" data-reveal><h2>A few things to know.</h2><details><summary>Does this connect to GitHub?</summary><p>This version is a local UI preview. GitHub sign-in and connected repository features are not enabled yet.</p></details><details><summary>Does stopping focus complete my task?</summary><p>No. The timer tracks your focus session. Mark a task done separately, and add a closing note whenever you like.</p></details><details><summary>Where is my work saved?</summary><p>Tasks, notes, and preferences stay in this browser. Export tasks from Settings to take a copy with you.</p></details></section>
+    <section className="pg-section pg-closing" data-reveal><h2>Start with one thing.</h2><p>You don’t need a perfect plan. Just a next step.</p><button className="pg-primary" onClick={onDemo}>Open local workspace<ArrowRight size={17} /></button></section></main><footer className="pg-home-footer"><strong>Pomogit</strong><span>Built around your next step.</span><button onClick={() => onNavigate('login')}>Log in<ArrowRight size={15} /></button></footer>
+  </div>
 }

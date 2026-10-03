@@ -1,0 +1,190 @@
+/* Content and viewport scaling overrides for the disposable approval preview. */
+:root { scrollbar-gutter: stable; }
+body { min-width: 0; }
+.workspace, .heading, .heading > div, .detail, .detail-heading > div,
+.detail-body, .task-chooser, .lane, .board-card, .activity-content,
+.folio-entry > div, .folio-identity, .folio-rhythm-body > *,
+.dialog-top > div, .settings-row > span, .feature-choice, .feature-choice > span {
+  min-width: 0;
+}
+h1, h2, h3, p, a, .project-label, .task-row strong, .board-card button,
+.folio-bio, .timer-context strong, .feature-choice strong, .recent-outcome strong {
+  overflow-wrap: anywhere;
+}
+.project-label { max-width: 100%; }
+.heading { flex-wrap: wrap; }
+.heading > div { flex-wrap: wrap; }
+.capture input { width: 0; }
+.task-row strong, .task-row > span, .board-card > button, .card-next {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.task-row strong, .task-row > span, .card-next { -webkit-line-clamp: 2; }
+.board-card > button { -webkit-line-clamp: 3; }
+.board-card > button { width: 100%; }
+.task-list { max-height: min(70dvh, 700px); scrollbar-gutter: stable; }
+.lane {
+  max-height: min(70dvh, 680px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.lane:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lane > h3 {
+  position: sticky;
+  top: -12px;
+  z-index: 1;
+  margin: -12px -12px 12px;
+  padding: 16px 12px 12px;
+  background: var(--wash);
+}
+.lane.drop-active > h3 { background: oklch(89% .03 175); }
+.timer-banner { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.timer-panel-heading > div, .dialog-top > button { flex-shrink: 0; }
+.timer-panel-body, .timer-context { min-width: 0; }
+.timer-actions { flex-wrap: wrap; }
+.timer-readout time { white-space: nowrap; }
+.timer-banner[data-panel=maximized] { max-width: calc(100vw - 32px); }
+.folio-identity h2 { max-width: 100%; }
+.folio-entry > div { min-width: 0; }
+.folio-entry a { white-space: normal; }
+.profile-heatmap { width: max-content; }
+.heatmap-scroll { min-width: 0; max-width: 100%; }
+.heatmap-key { flex-wrap: wrap; }
+.profile-stats strong { white-space: nowrap; }
+.folio-toolbar, .folio-toolbar > div, .folio-section-heading, .folio-footer { flex-wrap: wrap; }
+.recent-outcome { min-width: 0; }
+.recent-outcome > div { min-width: 0; }
+.filter-selects { min-width: 0; }
+.filter-select { min-width: 0; }
+.filter-select select { min-width: 0; max-width: 200px; }
+.mobile-filter-toggle { display: none; }
+.filter-applied button { text-align: left; }
+.notice > span { min-width: 0; overflow-wrap: anywhere; }
+.dialog-top { gap: 16px; }
+.dialog-body { overflow-wrap: anywhere; }
+#edit-form, #profile-form, #settings-form { min-height: 0; }
+#inspect-dialog .dialog-top h2 { font-size: 1.375rem; }
+#inspect-dialog > .dialog-top { max-height: 40dvh; overflow-y: auto; }
+#inspect-dialog > .dialog-footer { flex-wrap: wrap; }
+.dialog-footer > button { white-space: normal; }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .filter-controls { flex-wrap: wrap; }
+  .filter-search { flex-basis: 280px; max-width: none; }
+  .filter-selects { flex-wrap: wrap; }
+  .folio-rhythm-body { grid-template-columns: minmax(0,1fr); }
+  .folio-rhythm .profile-stats {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    padding: 20px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .folio-rhythm .profile-stats > div { display: grid; }
+}
+@media (max-width: 760px) {
+  .prototype { gap: 6px; }
+  .topbar { gap: 10px; }
+  .topbar .brand { font-size: 1.125rem; }
+  .page-switcher { min-width: 0; }
+  .page-switcher summary { gap: 10px; }
+  .page-switcher summary > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .page-switcher nav { max-width: calc(100vw - 32px); }
+  .workspace { padding-bottom: 160px; }
+  .heading > div { display: block; }
+  .filter-controls { grid-template-columns: minmax(0,1fr) auto auto; }
+  .mobile-filter-toggle { display: inline-flex; grid-column: 1; justify-self: start; gap: 8px; }
+  #filter-active-count:not(:empty) { font-size: .6875rem; background: var(--wash); padding: 1px 5px; border-radius: 3px; }
+  .filter-result { grid-column: 2; }
+  #clear-filters { grid-column: 3; }
+  #shortcut-help { display: none; }
+  .filter-selects { display: none; }
+  .filter-selects.is-open { display: grid; grid-column: 1/-1; grid-row: 3; grid-template-columns: 1fr 1fr; }
+  .filter-select { flex-wrap: wrap; padding: 6px 10px; }
+  .filter-select > span { width: 100%; }
+  .filter-select select { width: 100%; max-width: none; min-height: 30px; padding: 0; }
+  .filter-applied button { min-height: 36px; }
+  .task-chooser .task-list { max-height: min(45dvh, 320px); }
+  .task-row > span { display: none; }
+  .lane { max-height: none; overflow: visible; scrollbar-gutter: auto; }
+  .lane > h3 { top: 0; }
+  .board-card > button { -webkit-line-clamp: 3; }
+  .timer-banner { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); max-height: calc(100dvh - 24px); }
+  .timer-banner[data-panel=maximized] { width: calc(100vw - 24px); max-width: calc(100vw - 24px); }
+  .timer-banner[data-panel=minimized] { max-width: calc(100vw - 24px); }
+  .timer-banner[data-panel=maximized] .timer-readout time { font-size: 4rem; }
+  body.text-entry .timer-banner { display: none; }
+  .detail-footer { flex-wrap: wrap; }
+  .folio-section-heading { gap: 12px; }
+  .folio-section-heading h2 { max-width: 100%; }
+  .profile-stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .folio-rhythm .profile-stats > div { min-width: 0; }
+  .folio-rhythm .profile-stats strong { font-size: 1.375rem; }
+  .settings-footer > div { flex-wrap: wrap; }
+  .settings-data-actions { min-width: 0; }
+  .feature-option { flex-wrap: wrap; }
+  .feature-choice { flex: 1 1 170px; }
+  .feature-order { margin-left: auto; }
+  #account-menu { top: 128px; width: min(250px, calc(100vw - 32px)); }
+}
+/* Keep floating controls outside the usable phone content viewport. */
+:root { --timer-clearance: 0px; scroll-padding-bottom: var(--timer-clearance); }
+.detail :is(button, a, input, textarea, select), .board-card :is(button, select) {
+  scroll-margin-bottom: var(--timer-clearance);
+}
+@media (max-width: 760px) {
+  body { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  .prototype, .topbar { flex-shrink: 0; }
+  .workspace {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    margin: 0 0 var(--timer-clearance);
+    padding-bottom: 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: 24px;
+  }
+  body.text-entry .workspace { margin-bottom: 0; }
+  .detail :is(button, a, input, textarea, select), .board-card :is(button, select) {
+    scroll-margin-bottom: 24px;
+  }
+}
+:root { background: var(--canvas); }
+.card-grip { touch-action: none; user-select: none; cursor: grab; min-height: 24px; }
+.card-grip:active { cursor: grabbing; }
+.drag-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  margin: 0;
+  max-height: 320px;
+  overflow: hidden;
+  transform: rotate(1.5deg) scale(1.02);
+  box-shadow: 0 12px 30px oklch(15% .015 175 / .22);
+  border-color: var(--accent);
+  opacity: .96;
+}
+.board-card { cursor: default; }
+@media (prefers-reduced-motion: reduce) { .drag-ghost { transform: none; } }
+.reduce-motion .drag-ghost { transform: none; }
+@media (max-width: 760px), (pointer: coarse) {
+  .timer-panel-heading .timer-window-button { min-height: 44px; width: 44px; }
+  .timer-banner[data-panel=minimized] .timer-actions button { min-height: 44px; }
+  .board-card select, .filter-search input { min-height: 44px; }
+}
+@media (max-width: 760px) {
+  .timer-banner[data-panel=minimized] .timer-panel-heading .timer-window-button { min-height: 44px; width: 44px; }
+}
+@media (max-width: 760px) {
+  /* VisualViewport shrinks for phone keyboards; layout viewport often does not. */
+  body { height: var(--app-height, 100dvh); }
+  dialog, #settings-dialog, #inspect-dialog {
+    height: var(--app-height, 100dvh);
+    max-height: var(--app-height, 100dvh);
+  }
+  #edit-form, #profile-form, #settings-form {
+    height: var(--app-height, 100dvh);
+    max-height: var(--app-height, 100dvh);
+  }
+}

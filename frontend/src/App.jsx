@@ -1,28 +1,25 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { BriefcaseBusiness, ClipboardList, History, ShieldCheck } from 'lucide-react'
 import AuthScreen from './components/AuthScreen'
 import LandingScreen from './components/LandingScreen'
-import AccountMenu from './components/AccountMenu'
-import WorkspaceRouteSkeleton from './components/WorkspaceRouteSkeleton'
 import { authApi } from './lib/authApi'
 import { resolveInitialView, WORKSPACE_VIEWS } from './lib/navigation'
-import { hasOpenedWorkspace, markWorkspaceOpened, readProfile, readTheme, writeTheme } from './lib/preferences'
+import { hasOpenedWorkspace, markWorkspaceOpened, readProfile, readWorkProtocol, writeWorkProtocol } from './lib/preferences'
 
-const PUBLIC_VIEWS = ['landing', 'login', 'register']
-const DEV_BYPASS_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'
+const PUBLIC_VIEWS = ['landing', 'login', 'register', 'recover']
+// Phase 1 UI-only: auth gate disabled by user request. Re-enable in Phase 2 (DB).
+// To re-enable: restore `import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'`.
+const DEV_BYPASS_AUTH = true
 const LOCAL_PREVIEW_USER = { id: '00000000-0000-4000-8000-000000000001', email: 'Local preview', role: 'user' }
 
 const VIEW_LOADERS = {
-  work: () => import('./components/WorkScreen'),
-  tasks: () => import('./components/WorkScreen'),
-  review: () => import('./components/ReviewScreen'),
-  profile: () => import('./components/ProfileView'),
+  work: () => import('./components/Workbench'),
+  tasks: () => import('./components/Workbench'),
+  review: () => import('./components/Workbench'),
+  profile: () => import('./components/Workbench'),
   admin: () => import('./components/AdminView'),
 }
 
-const WorkScreen = lazy(VIEW_LOADERS.work)
-const ReviewScreen = lazy(VIEW_LOADERS.review)
-const ProfileView = lazy(VIEW_LOADERS.profile)
+const Workbench = lazy(VIEW_LOADERS.work)
 const AdminView = lazy(VIEW_LOADERS.admin)
 
 function requestedView() {
@@ -43,12 +40,14 @@ export default function App() {
   const [workspaceOpened, setWorkspaceOpened] = useState(() => hasOpenedWorkspace(localStorage))
   const [view, setView] = useState(() => {
     const requested = requestedView()
-    if (DEV_BYPASS_AUTH) return WORKSPACE_VIEWS.includes(requested) ? requested : 'work'
+    if (DEV_BYPASS_AUTH) return requested || 'work'
     return PUBLIC_VIEWS.includes(requested)
       ? requested
       : resolveInitialView({ requested, workspaceOpened: hasOpenedWorkspace(localStorage) })
   })
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || readTheme(localStorage, false))
+  const [preferences, setPreferences] = useState(() => readWorkProtocol(localStorage))
+  const [systemDark, setSystemDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  const theme = preferences.brightness === 'system' ? (systemDark ? 'dark' : 'light') : preferences.brightness
   const [profile, setProfile] = useState(() => readProfile(localStorage))
   const [auth, setAuth] = useState(() => DEV_BYPASS_AUTH
     ? { status: 'ready', user: LOCAL_PREVIEW_USER }
@@ -56,8 +55,20 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    writeTheme(localStorage, theme)
-  }, [theme])
+    document.documentElement.dataset.palette = preferences.palette
+    document.documentElement.dataset.motion = preferences.motion
+  }, [theme, preferences.palette, preferences.motion])
+  useEffect(() => {
+    const media = matchMedia('(prefers-color-scheme: dark)')
+    const changed = (event) => setSystemDark(event.matches)
+    media.addEventListener('change', changed)
+    return () => media.removeEventListener('change', changed)
+  }, [])
+  function savePreferences(next) {
+    const saved = { ...preferences, ...next }
+    writeWorkProtocol(localStorage, saved)
+    setPreferences(saved)
+  }
 
   useEffect(() => {
     if (DEV_BYPASS_AUTH) return undefined
@@ -79,15 +90,18 @@ export default function App() {
     }
   }, [currentView])
 
+  useEffect(() => {
+    function followLocation() { const next = requestedView(); setView(next || 'work') }
+    window.addEventListener('popstate', followLocation)
+    window.addEventListener('hashchange', followLocation)
+    return () => { window.removeEventListener('popstate', followLocation); window.removeEventListener('hashchange', followLocation) }
+  }, [])
+
   function navigate(nextView) {
     VIEW_LOADERS[nextView]?.()
     setView(nextView)
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${nextView}`)
-    document.querySelector('.workspace-stage')?.scrollTo({ top: 0, behavior: 'auto' })
-  }
-
-  function requestWorkspace() {
-    navigate('login')
+    if (nextView !== currentView) window.history.pushState(null, '', `${window.location.pathname}${window.location.search}#${nextView}`)
+    document.querySelector('.wb-main')?.scrollTo({ top: 0, behavior: 'auto' })
   }
 
   function authenticated(user) {
@@ -97,59 +111,14 @@ export default function App() {
     navigate(['admin', 'superadmin'].includes(user.role) && view === 'admin' ? 'admin' : 'work')
   }
 
-  async function logout() {
-    try { await authApi.logout() } catch { /* clearing local account state is still safe */ }
-    setAuth({ status: 'ready', user: null })
-    navigate('login')
-  }
-
   if (auth.status === 'loading') return <AuthLoading />
-  if (!auth.user) {
-    if (!workspaceOpened && view !== 'login' && view !== 'register') return <LandingScreen onOpen={requestWorkspace} />
-    return <AuthScreen initialMode={view === 'register' ? 'register' : 'login'} onAuthenticated={authenticated} onBack={() => { setWorkspaceOpened(false); navigate('landing') }} />
-  }
-
-  const isAdmin = canAccessAdmin
-  return (
-    <div className="workspace-shell">
-      <a className="skip-link" href="#main-content">Skip to content</a>
-      <aside className="workspace-sidebar">
-        <button className="brand-button" type="button" onClick={() => navigate('work')} aria-label="Open Work"><Brand /></button>
-        <nav aria-label="Workspace">
-          <button type="button" className={currentView === 'work' ? 'active' : ''} onPointerEnter={VIEW_LOADERS.work} onFocus={VIEW_LOADERS.work} onClick={() => navigate('work')} aria-current={currentView === 'work' ? 'page' : undefined}><BriefcaseBusiness size={18} /><span>Work</span></button>
-          <button type="button" className={currentView === 'tasks' ? 'active' : ''} onPointerEnter={VIEW_LOADERS.tasks} onFocus={VIEW_LOADERS.tasks} onClick={() => navigate('tasks')} aria-current={currentView === 'tasks' ? 'page' : undefined}><ClipboardList size={18} /><span>Tasks</span></button>
-          <button type="button" className={currentView === 'review' ? 'active' : ''} onPointerEnter={VIEW_LOADERS.review} onFocus={VIEW_LOADERS.review} onClick={() => navigate('review')} aria-current={currentView === 'review' ? 'page' : undefined}><History size={18} /><span>Review</span></button>
-          {isAdmin && <button type="button" className={currentView === 'admin' ? 'active' : ''} onPointerEnter={VIEW_LOADERS.admin} onFocus={VIEW_LOADERS.admin} onClick={() => navigate('admin')} aria-current={currentView === 'admin' ? 'page' : undefined}><ShieldCheck size={18} /><span>Admin</span></button>}
-        </nav>
-        <AccountMenu variant="sidebar" profile={profile} user={auth.user} active={currentView === 'profile'} localPreview={DEV_BYPASS_AUTH} theme={theme} onTheme={setTheme} onProfile={() => navigate('profile')} onLogout={logout} />
-      </aside>
-      <div className="workspace-frame">
-        <header className="workspace-topbar">
-          <Brand />
-          <nav aria-label="Mobile workspace">
-            <button type="button" className={currentView === 'work' ? 'active' : ''} onClick={() => navigate('work')}>Work</button>
-            <button type="button" className={currentView === 'tasks' ? 'active' : ''} onClick={() => navigate('tasks')}>Tasks</button>
-            <button type="button" className={currentView === 'review' ? 'active' : ''} onClick={() => navigate('review')}>Review</button>
-            {isAdmin && <button type="button" className={currentView === 'admin' ? 'active' : ''} onClick={() => navigate('admin')}>Admin</button>}
-            <AccountMenu variant="mobile" profile={profile} user={auth.user} active={currentView === 'profile'} localPreview={DEV_BYPASS_AUTH} theme={theme} onTheme={setTheme} onProfile={() => navigate('profile')} onLogout={logout} />
-          </nav>
-        </header>
-        <header className="workspace-pagebar">
-          <span>Pomogit / <strong>{currentView === 'admin' ? 'Admin' : currentView[0].toUpperCase() + currentView.slice(1)}</strong></span>
-          <AccountMenu variant="pagebar" profile={profile} user={auth.user} active={currentView === 'profile'} localPreview={DEV_BYPASS_AUTH} theme={theme} onTheme={setTheme} onProfile={() => navigate('profile')} onLogout={logout} />
-        </header>
-        <main className="workspace-stage" id="main-content" tabIndex="-1">
-          <div className="workspace-route" key={currentView}>
-            <Suspense fallback={<WorkspaceRouteSkeleton view={currentView} />}>
-              {currentView === 'work' && <WorkScreen mode="work" onOpenTasks={() => navigate('tasks')} onOpenReview={() => navigate('review')} />}
-              {currentView === 'tasks' && <WorkScreen mode="tasks" />}
-              {currentView === 'review' && <ReviewScreen onOpenWork={() => navigate('work')} />}
-              {currentView === 'profile' && <ProfileView user={auth.user} localPreview={DEV_BYPASS_AUTH} profile={profile} onProfile={setProfile} onOpenReview={() => navigate('review')} />}
-              {currentView === 'admin' && isAdmin && <AdminView currentUser={auth.user} />}
-            </Suspense>
-          </div>
-        </main>
-      </div>
-    </div>
-  )
+  const publicView = PUBLIC_VIEWS.includes(currentView)
+  const openWorkspace = () => { markWorkspaceOpened(localStorage); setWorkspaceOpened(true); navigate('work') }
+  return <>
+    {(publicView || !auth.user) && (currentView === 'landing' || (!auth.user && !workspaceOpened)
+      ? <LandingScreen onNavigate={navigate} onOpen={() => navigate('register')} onDemo={openWorkspace} palette={preferences.palette} theme={theme} reducedMotion={preferences.motion === 'reduced'} />
+      : <AuthScreen key={currentView} initialMode={currentView === 'register' ? 'register' : currentView === 'recover' ? 'recover' : 'login'} onAuthenticated={DEV_BYPASS_AUTH ? openWorkspace : authenticated} onNavigate={navigate} onBack={() => navigate('landing')} />)}
+    {auth.user && <div hidden={publicView}><Suspense fallback={<main className="auth-loading">Loading workspace…</main>}><Workbench view={publicView ? 'work' : currentView} onNavigate={navigate} profile={profile} onProfile={setProfile} preferences={preferences} onPreferences={savePreferences} onExit={() => navigate('login')}
+      admin={canAccessAdmin ? <Suspense fallback={<p>Loading admin…</p>}><AdminView currentUser={auth.user} /></Suspense> : null} /></Suspense></div>}
+  </>
 }

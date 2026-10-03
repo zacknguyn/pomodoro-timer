@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  DEFAULT_WORK_PROTOCOL,
   hasOpenedWorkspace,
   markWorkspaceOpened,
   PROFILE_KEY,
@@ -44,10 +45,21 @@ test('theme reads the rebrand key and migrates the previous preference', () => {
 test('profile and work protocol survive malformed and out-of-range preferences', () => {
   const storage = memoryStorage({ [PROFILE_KEY]: '{broken', [WORK_PROTOCOL_KEY]: JSON.stringify({ focusMinutes: 500, weekStart: 'sunday' }) })
   assert.equal(readProfile(storage).displayName, 'Local maker')
-  assert.deepEqual(readWorkProtocol(storage), { focusMinutes: 120, checkpointRule: 'always', weekStart: 'sunday' })
+  assert.deepEqual(readWorkProtocol(storage), { ...DEFAULT_WORK_PROTOCOL, focusMinutes: 120, weekStart: 'sunday' })
 
   writeProfile(storage, { displayName: 'Phong', headline: 'Makes things move.' })
   writeWorkProtocol(storage, { focusMinutes: 45, weekStart: 'monday' })
   assert.equal(readProfile(storage).displayName, 'Phong')
   assert.equal(readWorkProtocol(storage).focusMinutes, 45)
+})
+
+test('workspace appearance validates stored values and keeps the selected layout', () => {
+  const storage = memoryStorage({ [WORK_PROTOCOL_KEY]: JSON.stringify({ palette: 'unknown', brightness: 'unknown', navigation: 'unknown', motion: 'unknown' }) })
+  assert.equal(readWorkProtocol(storage).palette, 'electric')
+  assert.equal(readWorkProtocol(storage).brightness, 'system')
+  assert.equal(readWorkProtocol(storage).navigation, 'sidebar')
+  writeWorkProtocol(storage, { palette: 'sage', brightness: 'dark', navigation: 'navbar', expand: false })
+  assert.equal(readWorkProtocol(storage).navigation, 'navbar')
+  assert.equal(readWorkProtocol(storage).brightness, 'dark')
+  assert.equal(readWorkProtocol(storage).expand, false)
 })

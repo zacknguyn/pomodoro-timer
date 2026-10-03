@@ -1,0 +1,74 @@
+[
+  {
+    "file": "workspace-violet-electric-light-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-electric-light-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-violet-electric-light-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-electric-light-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-violet-electric-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-electric-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-violet-electric-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-electric-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-violet-sage-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-sage-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-violet-sage-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-violet-sage-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  }
+]

@@ -11,6 +11,12 @@ export const DEFAULT_PROFILE = {
 
 export const DEFAULT_WORK_PROTOCOL = {
   focusMinutes: 25,
+  palette: 'electric',
+  brightness: 'system',
+  navigation: 'sidebar',
+  density: 'comfortable',
+  motion: 'system',
+  expand: true,
   checkpointRule: 'always',
   weekStart: 'monday',
 }
@@ -54,6 +60,12 @@ export function readWorkProtocol(storage) {
   const focusMinutes = Number(protocol.focusMinutes)
   return {
     ...protocol,
+    palette: protocol.palette === 'sage' ? 'sage' : 'electric',
+    brightness: ['light', 'dark'].includes(protocol.brightness) ? protocol.brightness : 'system',
+    navigation: protocol.navigation === 'navbar' ? 'navbar' : 'sidebar',
+    density: protocol.density === 'compact' ? 'compact' : 'comfortable',
+    motion: protocol.motion === 'reduced' ? 'reduced' : 'system',
+    expand: protocol.expand !== false,
     focusMinutes: Number.isFinite(focusMinutes) ? Math.min(120, Math.max(5, focusMinutes)) : DEFAULT_WORK_PROTOCOL.focusMinutes,
   }
 }

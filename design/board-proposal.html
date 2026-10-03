@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pomogit — Board proposal</title>
+<style>
+@font-face { font-family: Archivo; src: url('../frontend/node_modules/@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+:root {
+  --bg: oklch(17% .026 315); --surface: oklch(22% .029 315); --raised: oklch(28% .038 315);
+  --ink: oklch(95% .012 315); --muted: oklch(76% .025 315); --line: oklch(38% .04 315);
+  --accent: oklch(79% .12 300); --mint: oklch(83% .09 165); --wash: oklch(32% .046 315);
+  --shadow: oklch(10% .018 315); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 Archivo, sans-serif; }
+button, input, select, textarea { font: inherit; }
+button {
+  cursor: pointer; color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+  background: var(--raised); min-height: 36px; padding: 6px 12px;
+  box-shadow: inset 0 1px 0 oklch(90% .02 315 / .1), 0 2px 0 var(--shadow);
+  transition: background-color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
+}
+button:hover { background: var(--wash); border-color: oklch(54% .065 315); }
+button:active { transform: translateY(1px); box-shadow: inset 0 1px 3px var(--shadow); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
+.primary { background: var(--accent); color: var(--bg); border-color: oklch(86% .08 300); font-weight: 650; box-shadow: inset 0 1px 0 oklch(96% .02 300 / .5), 0 3px 0 oklch(40% .1 300); }
+.primary:hover { background: oklch(85% .095 300); border-color: oklch(92% .04 300); }
+.ghost { border-color: transparent; background: transparent; box-shadow: none; }
+.small { font-size: 12px; color: var(--muted); }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 24px; font-weight: 650; letter-spacing: -.035em; }
+h2 { font-size: 18px; letter-spacing: -.025em; }
+h3 { font-size: 14px; font-weight: 600; }
+label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); }
+input, textarea, select { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+textarea { resize: vertical; min-height: 80px; }
+select { width: auto; }
+.preview { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 20px; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+.shell { min-height: calc(100dvh - 35px); display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+.rail { position: sticky; top: 0; height: calc(100dvh - 35px); display: flex; flex-direction: column; padding: 24px 16px 16px; gap: 28px; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px; }
+.brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: var(--accent); box-shadow: inset 0 1px 0 oklch(95% .03 300 / .4), 0 3px 0 oklch(40% .1 300); }
+.brand img { width: 28px; height: 28px; }
+.brand strong { display: block; font-size: 18px; font-weight: 650; letter-spacing: -.03em; }
+.brand small { display: block; font-size: 11px; color: var(--muted); }
+.rail-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 10px 10px; }
+.rail nav { display: grid; gap: 8px; }
+.rail nav button { display: flex; align-items: center; gap: 12px; min-height: 44px; text-align: left; background: transparent; border-color: transparent; box-shadow: none; }
+.nav-icon { width: 20px; height: 20px; display: grid; place-items: center; }
+.nav-icon svg { width: 18px; height: 18px; }
+.rail nav button:hover { background: var(--surface); border-color: var(--line); }
+.rail nav button[aria-current=page] { color: var(--accent); background: oklch(30% .06 305); border-color: oklch(44% .08 305); box-shadow: inset 0 1px 0 oklch(90% .05 305 / .1), 0 2px 0 var(--shadow); font-weight: 600; }
+.nav-count { margin-left: auto; font-size: 11px; color: var(--muted); }
+.rail-projects { display: grid; gap: 6px; }
+.rail-projects button { display: flex; align-items: center; gap: 10px; text-align: left; min-height: 38px; padding-inline: 10px; background: transparent; border-color: transparent; box-shadow: none; font-size: 12px; }
+.rail-projects button:hover, .rail-projects button[aria-pressed=true] { background: var(--surface); border-color: var(--line); }
+.project-dot { width: 8px; height: 8px; border-radius: 3px; background: var(--accent); }
+.project-dot.mint { background: var(--mint); }
+.rail-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.account { width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; padding: 10px; border-color: var(--line); background: var(--surface); }
+.account > span:last-child { margin-left: auto; color: var(--muted); }
+.avatar { display: grid; place-items: center; width: 32px; height: 32px; background: oklch(35% .06 165); color: var(--mint); border: 1px solid oklch(49% .07 165); border-radius: 10px; font-size: 11px; }
+.account strong { display: block; font-size: 12px; }
+.account small { display: block; font-size: 10px; color: var(--muted); }
+.main { min-width: 0; margin: 12px 12px 12px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 24px 18px; }
+.page-subtitle { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.tools { display: flex; gap: 8px; align-items: center; padding: 0 24px 24px; }
+.tools input { max-width: 260px; }
+.tools select { max-width: 180px; background: var(--raised); box-shadow: inset 0 1px 0 oklch(90% .02 315 / .08), 0 2px 0 var(--shadow); }
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0 20px 28px; }
+.column { --column-color: oklch(81% .065 315); --column-bg: oklch(25% .04 315); --card-bg: oklch(29% .039 315); min-width: 0; background: var(--column-bg); border: 1px solid color-mix(in oklch, var(--column-color) 20%, var(--column-bg)); border-radius: 12px; padding: 10px; }
+.column[data-column=ready] { --column-color: var(--accent); --column-bg: oklch(25% .049 300); --card-bg: oklch(30% .048 300); }
+.column[data-column=progress] { --column-color: oklch(83% .1 75); --column-bg: oklch(26% .027 65); --card-bg: oklch(31% .032 65); }
+.column[data-column=done] { --column-color: var(--mint); --column-bg: oklch(25% .031 165); --card-bg: oklch(30% .035 165); }
+.column-head { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 2px 10px; color: var(--column-color); }
+.column-head span { font-size: 11px; padding: 1px 6px; border-radius: 5px; background: color-mix(in oklch, var(--column-color) 12%, transparent); }
+.column-head button { margin-left: auto; background: color-mix(in oklch, var(--column-color) 9%, var(--column-bg)); border-color: color-mix(in oklch, var(--column-color) 25%, var(--column-bg)); color: var(--column-color); min-height: 28px; padding: 0 8px; }
+.cards { display: grid; align-content: start; gap: 12px; min-height: 340px; border-radius: 8px; }
+.cards.dragover { outline: 2px dashed var(--column-color); background: color-mix(in oklch, var(--column-color) 10%, transparent); }
+.card { padding: 12px; border: 1px solid color-mix(in oklch, var(--column-color) 25%, var(--card-bg)); border-radius: 9px; background: var(--card-bg); display: grid; gap: 12px; box-shadow: inset 0 1px 0 oklch(95% .02 315 / .05), 0 3px 5px oklch(10% .02 315 / .18); }
+.card:hover { border-color: color-mix(in oklch, var(--column-color) 55%, var(--card-bg)); }
+.card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--column-color); }
+.card-header button { min-height: 28px; padding: 2px 7px; font-size: 10px; background: color-mix(in oklch, var(--column-color) 12%, var(--card-bg)); border-color: color-mix(in oklch, var(--column-color) 30%, var(--card-bg)); color: var(--column-color); }
+.card-title { padding: 0; min-height: 0; border: 0; text-align: left; background: transparent; box-shadow: none; font-weight: 600; line-height: 1.45; }
+.card-title:hover { background: transparent; color: var(--accent); }
+.next { font-size: 12px; line-height: 1.5; }
+.next span { color: var(--column-color, var(--muted)); }
+.change { font-size: 11px; color: var(--muted); border-top: 1px solid color-mix(in oklch, var(--column-color) 18%, transparent); padding-top: 10px; }
+.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; }
+.project { background: oklch(32% .065 300); color: var(--accent); padding: 3px 6px; border: 1px solid oklch(42% .075 300); border-radius: 5px; }
+.project[data-project='API service'] { background: oklch(32% .04 165); color: var(--mint); border-color: oklch(43% .05 165); }
+.card-footer select { font-size: 10px; padding: 3px 4px; background: color-mix(in oklch, var(--column-color) 8%, var(--card-bg)); border-color: color-mix(in oklch, var(--column-color) 25%, var(--card-bg)); }
+.status-dot { width: 8px; height: 8px; border: 1px solid var(--column-color, var(--accent)); border-radius: 50%; }
+.status-dot[data-status=progress], .status-dot[data-status=done] { background: var(--column-color, var(--mint)); }
+.empty { font-size: 12px; color: var(--muted); padding: 20px 8px; }
+.mobile-status { display: none; }
+.session { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 0 24px 16px; padding: 12px 16px; background: oklch(28% .034 165); border: 1px solid oklch(43% .05 165); border-radius: 9px; }
+.session > div { display: flex; gap: 10px; align-items: center; }
+.session strong { font-size: 12px; }.session time { font-variant-numeric: tabular-nums; color: var(--mint); }.session button { font-size: 12px; }
+.notice { margin: 0 24px 16px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
+.content { padding: 8px 24px 32px; max-width: 900px; }
+.activity-row { padding: 16px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 20px; }
+.activity-row p { font-size: 13px; margin-top: 6px; }.activity-row time { font-size: 12px; color: var(--mint); }
+dialog { width: min(760px, calc(100% - 32px)); max-height: calc(100dvh - 48px); padding: 0; color: var(--ink); background: var(--surface); border: 1px solid oklch(49% .05 315); border-radius: 14px; overflow: auto; box-shadow: 0 24px 80px oklch(8% .02 315 / .65); }
+dialog::backdrop { background: oklch(10% .03 315 / .75); }
+.dialog-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--raised); color: var(--accent); font-size: 12px; }
+.dialog-body { padding: 24px; display: grid; gap: 20px; }.dialog-body input[name=title] { font-size: 21px; font-weight: 600; }
+.properties { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.properties select { width: 100%; }
+.dialog-footer { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 16px 24px; background: var(--raised); }
+.notes { display: grid; gap: 12px; }.note { font-size: 13px; padding: 12px 0; border-top: 1px solid var(--line); }.note time { font-size: 11px; color: var(--mint); }
+.focus-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; min-height: 65vh; }
+.focus-main { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 24px; padding: 40px; }
+.focus-main h2 { max-width: 25ch; font-size: 28px; line-height: 1.25; }.focus-main p { max-width: 50ch; color: var(--muted); }
+.clock { font-size: 60px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -.04em; color: var(--mint); }
+.focus-context { padding: 24px; border-left: 1px solid var(--line); background: oklch(24% .035 315); }
+.focus-context ol { list-style: none; padding: 0; margin: 16px 0; }.focus-context li { padding: 12px 0; border-top: 1px solid var(--line); font-size: 12px; }.focus-context li span { display: block; color: var(--muted); margin-top: 6px; }
+.focus-controls { display: flex; gap: 8px; }.utility { max-width: 560px; display: grid; gap: 24px; }.utility section { display: grid; gap: 12px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+[hidden] { display: none !important; }
+@media (max-width: 1200px) { .shell { grid-template-columns: 200px minmax(0, 1fr); }.rail { padding-inline: 12px; }.board { grid-template-columns: repeat(2, minmax(0, 1fr)); }.cards { min-height: 200px; } }
+@media (max-width: 760px) {
+  button { min-height: 44px; }.preview { padding: 8px 12px; flex-wrap: wrap; }.preview span:last-child { display: none; }.shell { display: block; }
+  .rail { position: static; height: auto; padding: 16px; gap: 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .brand { padding: 0; }.brand-mark { width: 36px; height: 36px; border-radius: 10px; }.brand img { width: 24px; height: 24px; }.brand strong { font-size: 16px; }.brand small { font-size: 10px; }
+  .rail > section:first-of-type { grid-column: 1 / -1; grid-row: 2; }.rail-label { display: none; }.rail nav { display: flex; gap: 8px; }.rail nav button { flex: 1; justify-content: center; border-color: var(--line); background: var(--surface); }
+  .rail > section:nth-of-type(2) { grid-column: 1 / -1; grid-row: 3; }.rail-projects { display: flex; gap: 8px; overflow: auto; }.rail-projects button { flex-shrink: 0; white-space: nowrap; border-color: var(--line); min-height: 44px; }
+  .rail-footer { grid-column: 2; grid-row: 1; padding: 0; border: 0; margin: 0; }.account { padding: 6px; min-height: 44px; }.account > div, .account > span:last-child { display: none; }
+  .main { margin: 0 8px 8px; border-radius: 12px; }.top { padding: 20px 16px 16px; }h1 { font-size: 21px; }.tools { padding: 0 16px 16px; flex-wrap: wrap; }.tools input { flex: 1 1 100%; max-width: none; }.tools select { flex: 1; max-width: none; min-height: 44px; }.mobile-status { display: block; }
+  .board { display: grid; grid-template-columns: 1fr; padding: 0 12px 20px; }.column { padding: 12px; }.column-head { padding-bottom: 12px; }.cards { padding: 0; min-height: 0; }.card { padding: 14px; }.card-footer select { min-height: 36px; }.card-header button { min-height: 36px; }
+  .session { margin: 0 16px 12px; align-items: flex-start; flex-direction: column; }.session > div { flex-wrap: wrap; }.notice { margin: 0 16px 12px; flex-wrap: wrap; }.content { padding: 8px 16px 24px; }.activity-row { grid-template-columns: 1fr; gap: 6px; }
+  dialog { width: 100%; height: 100dvh; max-height: 100dvh; max-width: none; margin: 0; border: 0; border-radius: 0; }.dialog-body { padding: 20px 16px; }.dialog-footer { padding: 16px; position: sticky; bottom: 0; }.properties { grid-template-columns: 1fr; }
+  .focus-layout { grid-template-columns: 1fr; }.focus-main { padding: 24px; }.focus-main h2 { font-size: 24px; }.focus-context { border-left: 0; border-top: 1px solid var(--line); padding: 20px 24px; }.clock { font-size: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style></head><body>
+<div class="preview"><span>Design proposal · sample data · changes last only while this preview is open</span><span>Resize to compare desktop board and mobile list</span></div>
+<div class="shell"><aside class="rail" aria-label="Workspace sidebar">
+  <div class="brand"><span class="brand-mark"><img src="../frontend/public/pomogit-logo.png" alt=""></span><div><strong>Pomogit</strong><small>Make room for real work.</small></div></div>
+  <section><p class="rail-label">Workspace</p><nav aria-label="Workspace">
+    <button data-view="board" aria-current="page"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16"/></svg></span>Board<span class="nav-count" id="board-count">5</span></button>
+    <button data-view="activity"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></span>Activity</button>
+  </nav></section>
+  <section><p class="rail-label">Projects</p><nav class="rail-projects" id="project-shortcuts" aria-label="Project shortcuts"></nav></section>
+  <footer class="rail-footer"><button class="account" data-view="profile" aria-label="Open profile and settings"><span class="avatar">PN</span><div><strong>Phong Nguyen</strong><small>Profile & settings</small></div><span aria-hidden="true">⌄</span></button></footer>
+</aside>
+<main class="main"><header class="top"><div><h1 id="page-title">Board</h1><p class="page-subtitle" id="page-subtitle">A clear place for everything in motion.</p></div><button class="primary" id="new-task">+ New task</button></header><div id="session"></div><div id="notice" role="status"></div><div class="tools" id="tools"><input id="search" type="search" aria-label="Search tasks" placeholder="Search tasks…"><select id="project-filter" aria-label="Filter by project"></select><select id="status-filter" class="mobile-status" aria-label="Filter by status"><option value="all">All statuses</option><option value="inbox">Inbox</option><option value="ready">Ready</option><option value="progress">In progress</option><option value="done">Done</option></select></div><div id="page"></div></main></div>
+<dialog id="task-dialog" aria-labelledby="task-heading"><form id="task-form"><header class="dialog-top"><span id="task-heading">Task details</span><button type="button" class="ghost" data-close="task-dialog" aria-label="Close task details">✕</button></header><div class="dialog-body"><label>Title<input name="title" required placeholder="What outcome do you want?"></label><label>Next step<textarea name="next" required placeholder="What is the next concrete action?"></textarea></label><div class="properties"><label>Status<select name="status"><option value="inbox">Inbox</option><option value="ready">Ready</option><option value="progress">In progress</option><option value="done">Done</option></select></label><label>Project<input name="project" list="project-names" placeholder="Choose or create a project"><datalist id="project-names"></datalist></label></div><label>Reference link<input type="url" name="reference" placeholder="https://…"></label><section class="notes"><h3>Change notes</h3><div id="task-notes"></div><label>Add a note<textarea name="note" placeholder="What changed? Add a note when you’re ready."></textarea></label></section></div><footer class="dialog-footer"><button type="button" id="start-focus">Start focus</button><button class="primary" type="submit">Save task</button></footer></form></dialog>
+<dialog id="focus-dialog" aria-labelledby="focus-heading"><header class="dialog-top"><span>Focus session</span><button class="ghost" data-close="focus-dialog">Back to Board</button></header><div class="focus-layout"><section class="focus-main"><span class="small" id="focus-project"></span><h2 id="focus-heading"></h2><p id="focus-next"></p><time class="clock" id="clock">25:00</time><div class="focus-controls"><button class="primary" id="pause">Pause</button><button id="end">End session</button></div></section><aside class="focus-context"><h3>Task context</h3><p class="small">Your current and upcoming work</p><ol id="context-list"></ol></aside></div></dialog>
+<script>
+const stages=[['inbox','Inbox'],['ready','Ready'],['progress','In progress'],['done','Done']];
+let tasks=[
+{id:1,title:'Clarify empty board behavior',next:'Sketch the first-task capture flow.',project:'Pomogit',status:'inbox',reference:'',notes:[]},
+{id:2,title:'Make task dialogs keyboard accessible',next:'Check focus return after Escape.',project:'Pomogit',status:'ready',reference:'',notes:[{text:'Dialog fields now follow a predictable tab order.',date:'Today'}]},
+{id:3,title:'Handle failed webhook deliveries',next:'Add a retry case for a timeout response.',project:'API service',status:'ready',reference:'',notes:[{text:'Retry policy documented; timeout case still needs coverage.',date:'Yesterday'}]},
+{id:4,title:'Preserve filters when returning to Board',next:'Check project selection after closing a task.',project:'Pomogit',status:'progress',reference:'',notes:[{text:'Project filter is wired into the board.',date:'Today'}]},
+{id:5,title:'Document the local development setup',next:'Share the updated setup instructions.',project:'API service',status:'done',reference:'',notes:[{text:'Verified the setup steps from a fresh checkout.',date:'Yesterday'}]}
+];
+let view='board',selected=null,session=null,remaining=1500,paused=false,dragged=null;
+const $=id=>document.getElementById(id);const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const projects=()=>[...new Set(tasks.map(t=>t.project).filter(Boolean))].sort();const name=status=>stages.find(s=>s[0]===status)[1];
+function filtered(){return tasks.filter(t=>(!$('project-filter').value||t.project===$('project-filter').value)&&`${t.title} ${t.next} ${t.project}`.toLowerCase().includes($('search').value.toLowerCase()))}
+function card(t){return `<article class="card" draggable="true" data-task="${t.id}"><div class="card-header"><span>PG-${String(t.id).padStart(3,'0')}</span><button data-open="${t.id}" aria-label="Open ${esc(t.title)}">Open ↗</button></div><button class="card-title" data-open="${t.id}">${esc(t.title)}</button><p class="next"><span>Next · </span>${esc(t.next)}</p><p class="change">${t.notes.length?esc(t.notes.at(-1).text):'No change note yet'}</p><footer class="card-footer"><span class="project" data-project="${esc(t.project)}">${esc(t.project||'No project')}</span><select data-status="${t.id}" aria-label="Status for ${esc(t.title)}">${stages.map(([id,label])=>`<option value="${id}" ${t.status===id?'selected':''}>${label}</option>`).join('')}</select></footer></article>`}
+function render(){const filter=$('project-filter').value;$('board-count').textContent=tasks.length;$('project-shortcuts').innerHTML=[['','All projects'],...projects().map(p=>[p,p])].map(([value,label])=>`<button data-project-filter="${esc(value)}" aria-pressed="${filter===value}"><span class="project-dot ${value==='API service'?'mint':''}" aria-hidden="true"></span>${esc(label)}<span class="nav-count">${value?tasks.filter(t=>t.project===value).length:tasks.length}</span></button>`).join('');$('page-subtitle').textContent=view==='board'?'A clear place for everything in motion.':view==='activity'?'The changes that move your work forward.':'Your workspace, your preferences.';$('project-filter').innerHTML='<option value="">All projects</option>'+projects().map(p=>`<option ${p===filter?'selected':''}>${esc(p)}</option>`).join('');$('project-names').innerHTML=projects().map(p=>`<option value="${esc(p)}">`).join('');$('page-title').textContent=view==='board'?'Board':view==='activity'?'Activity':'Profile';$('tools').hidden=view!=='board';$('new-task').hidden=view!=='board';document.querySelectorAll('[data-view]').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+if(view==='board'){$('page').className='board';$('page').innerHTML=stages.map(([id,label])=>`<section class="column" data-column="${id}" ${matchMedia('(max-width:760px)').matches&&$('status-filter').value!=='all'&&$('status-filter').value!==id?'hidden':''}><header class="column-head"><i class="status-dot" data-status="${id}"></i><h3>${label}</h3><span>${filtered().filter(t=>t.status===id).length}</span><button class="ghost" data-add="${id}" aria-label="Add task to ${label}">+</button></header><div class="cards" data-drop="${id}">${filtered().filter(t=>t.status===id).map(card).join('')||'<p class="empty">No tasks here.</p>'}</div></section>`).join('')}
+else if(view==='activity'){$('page').className='content';$('page').innerHTML='<p class="small" style="margin-bottom:20px">Change notes and session history</p>'+tasks.flatMap(t=>t.notes.map(n=>({t,n}))).reverse().map(({t,n})=>`<article class="activity-row"><time>${esc(n.date)}</time><div><button class="card-title" data-open="${t.id}">${esc(t.title)}</button><p>${esc(n.text)}</p><p class="small">${esc(t.project||'No project')} · ${name(t.status)}</p></div></article>`).join('')}
+else{$('page').className='content utility';$('page').innerHTML='<section><h2>Profile</h2><label>Name<input value="Phong Nguyen"></label><label>About<textarea>Building tools for focused developer work.</textarea></label><p class="small">Identity fields are illustrative in this proposal.</p></section><section><h2>Settings</h2><label>Session duration<select id="duration"><option value="1500">25 minutes</option><option value="3000">50 minutes</option></select></label><p class="small">Project names are created directly from the task dialog.</p></section>'}renderSession()}
+function openTask(id,status='inbox'){selected=id?tasks.find(t=>t.id===Number(id)):null;const f=$('task-form');f.reset();f.elements.title.value=selected?.title||'';f.elements.next.value=selected?.next||'';f.elements.project.value=selected?.project||'';f.elements.reference.value=selected?.reference||'';f.elements.status.value=selected?.status||status;$('task-heading').textContent=selected?`PG-${String(selected.id).padStart(3,'0')} · Task details`:'New task';$('task-notes').innerHTML=selected?.notes.map(n=>`<div class="note"><time>${esc(n.date)}</time><p>${esc(n.text)}</p></div>`).join('')||'<p class="small">Notes are optional. Add context when something changes.</p>';$('start-focus').hidden=!selected||selected.status==='done';$('start-focus').disabled=!!session;$('task-dialog').showModal()}
+function saveTask(){const f=$('task-form');if(!f.reportValidity())return null;const values={title:f.elements.title.value.trim(),next:f.elements.next.value.trim(),project:f.elements.project.value.trim(),reference:f.elements.reference.value.trim(),status:f.elements.status.value};if(!values.title||!values.next)return null;if(!selected){selected={id:Math.max(...tasks.map(t=>t.id))+1,notes:[],...values};tasks.push(selected)}else Object.assign(selected,values);if(f.elements.note.value.trim())selected.notes.push({text:f.elements.note.value.trim(),date:'Just now'});$('task-dialog').close();render();return selected}
+function renderSession(){const task=tasks.find(t=>t.id===session);$('session').innerHTML=task?`<div class="session"><div><span class="status-dot" data-status="progress"></span><strong>${esc(task.title)}</strong><time>${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}</time><span class="small">${paused?'Paused':'Focusing'}</span></div><button data-focus>Open focus</button></div>`:'';$('clock').textContent=`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`}
+function openFocus(){const t=tasks.find(t=>t.id===session);$('focus-heading').textContent=t.title;$('focus-project').textContent=t.project||'No project';$('focus-next').textContent='Next · '+t.next;$('context-list').innerHTML=[t,...tasks.filter(x=>x.id!==t.id&&['ready','progress'].includes(x.status)).slice(0,3)].map(x=>`<li><strong>${esc(x.title)}</strong><span>${x.id===t.id?'Current task':name(x.status)} · ${esc(x.next)}</span></li>`).join('');$('pause').textContent=paused?'Resume':'Pause';$('focus-dialog').showModal()}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.view){view=b.dataset.view;render()}if(b.hasAttribute('data-project-filter')){view='board';$('project-filter').value=b.dataset.projectFilter;render()}if(b.dataset.open)openTask(b.dataset.open);if(b.dataset.add)openTask(null,b.dataset.add);if(b.dataset.close)$(b.dataset.close).close();if(b.hasAttribute('data-focus'))openFocus();if(b.dataset.note)openTask(b.dataset.note)});
+$('new-task').onclick=()=>openTask();$('task-form').onsubmit=e=>{e.preventDefault();saveTask()};$('start-focus').onclick=()=>{const task=saveTask();if(!task)return;task.status='progress';session=task.id;remaining=Number($('duration')?.value||1500);paused=false;$('notice').innerHTML='';render();openFocus()};$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Resume':'Pause';renderSession()};$('end').onclick=()=>{const id=session;const task=tasks.find(t=>t.id===id);task.notes.push({text:'Focus session ended.',date:'Just now'});session=null;$('focus-dialog').close();view='board';render();$('notice').innerHTML=`<div class="notice"><span>Session ended. Your task stays In progress.</span><button class="ghost" data-note="${id}">Add note</button><button class="ghost" id="dismiss">Dismiss</button></div>`;$('dismiss').onclick=()=>{$('notice').innerHTML=''}};
+$('search').oninput=render;$('project-filter').onchange=render;$('status-filter').onchange=render;document.addEventListener('change',e=>{if(e.target.dataset.status){tasks.find(t=>t.id===Number(e.target.dataset.status)).status=e.target.value;render()}});document.addEventListener('dragstart',e=>{const card=e.target.closest('[data-task]');if(card){dragged=Number(card.dataset.task);e.dataTransfer.setData('text/plain',String(dragged))}});document.addEventListener('dragover',e=>{const drop=e.target.closest('[data-drop]');if(drop){e.preventDefault();drop.classList.add('dragover')}});document.addEventListener('dragleave',e=>e.target.closest('[data-drop]')?.classList.remove('dragover'));document.addEventListener('drop',e=>{const drop=e.target.closest('[data-drop]');if(drop&&dragged){e.preventDefault();tasks.find(t=>t.id===dragged).status=drop.dataset.drop;dragged=null;render()}});matchMedia('(max-width:760px)').addEventListener('change',render);setInterval(()=>{if(session&&!paused&&remaining>0){remaining--;renderSession();if(!remaining){paused=true;$('pause').textContent='Resume'}}},1000);render();
+</script></body></html>
