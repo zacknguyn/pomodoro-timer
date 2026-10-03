@@ -1,0 +1,26 @@
+[
+  {
+    "file": "workspace-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Actual React UI with isolated default mock data"
+  },
+  {
+    "file": "board-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Actual React UI with isolated default mock data"
+  },
+  {
+    "file": "workspace-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Actual React UI with isolated default mock data"
+  },
+  {
+    "file": "board-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Actual React UI with isolated default mock data"
+  }
+]

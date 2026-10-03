@@ -1,0 +1,146 @@
+/* Pomogit workbench: outcome-led hierarchy, ink-green focus, precise controls.
+   Layered after scaling.css to preserve its viewport and scrolling contracts. */
+:root {
+  --canvas: oklch(97.4% .004 165);
+  --paper: oklch(99.4% .002 165);
+  --ink: oklch(25% .019 165);
+  --muted: oklch(47% .018 165);
+  --line: oklch(86% .011 165);
+  --wash: oklch(94.8% .009 165);
+  --accent: oklch(36% .065 165);
+  --ease-workbench: cubic-bezier(.16,1,.3,1);
+}
+button, a.button { font-weight: 500; border-radius: 6px; box-shadow: 0 1px 1px oklch(25% .019 165 / .07); }
+button:active, a.button:active { transform: translateY(1px); box-shadow: none; }
+button.ghost { box-shadow: none; }
+.primary, a.primary { font-weight: 600; }
+input, textarea, select { border-radius: 6px; }
+input:hover, textarea:hover, select:hover { border-color: oklch(70% .018 165); }
+.topbar { height: 64px; gap: 32px; padding-inline: 32px; }
+.brand { font-weight: 700; letter-spacing: -.055em; }
+.page-switcher summary { min-height: 36px; border-color: transparent; background: transparent; box-shadow: none; }
+.page-switcher summary:hover, .page-switcher[open] summary { background: var(--wash); border-color: var(--line); }
+.page-switcher nav, #account-menu { box-shadow: 0 10px 24px oklch(25% .019 165 / .12); }
+.account { border-radius: 10px; }
+.workspace { padding-top: 28px; }
+.heading { padding-bottom: 20px; }
+h1 { font-size: 1.5rem; letter-spacing: -.035em; }
+.heading .small { font-variant-numeric: tabular-nums; }
+.capture { margin-bottom: 20px; }
+.capture input { min-height: 40px; }
+.capture button { min-height: 40px; }
+.filter-controls { padding-block: 12px; border-color: var(--line); }
+.filter-search { background: var(--paper); }
+.filter-result { font-variant-numeric: tabular-nums; }
+.layout { gap: 28px; grid-template-columns: 300px minmax(0,1fr); align-items: start; }
+.list-heading { padding: 0 12px; margin-bottom: 8px; font-weight: 500; }
+.task-list { gap: 6px; }
+.task-row { padding: 16px 12px; border-radius: 6px; transition: background-color 140ms, border-color 140ms; box-shadow: none; }
+.task-row:hover { transform: none; background: var(--wash); }
+.task-row strong { font-size: .9375rem; line-height: 1.4; font-weight: 600; }
+.task-row > span { font-size: .8125rem; margin-top: 8px; }
+.task-row .task-meta { margin-top: 12px; gap: 8px; }
+.task-row[aria-pressed=true] { background: var(--paper); border-color: oklch(70% .025 165); box-shadow: 0 1px 2px oklch(25% .019 165 / .06); animation: none; }
+.project-label { font-size: .75rem; font-weight: 600; }
+.task-status, .focus-indicator { font-size: .6875rem; padding: 3px 7px; }
+.detail { border-radius: 8px; border-color: oklch(81% .015 165); }
+.detail-heading { padding: 24px; }
+.detail-heading .task-meta { margin: 0 0 12px; gap: 8px; }
+.detail-heading h2 { font-size: 1.75rem; line-height: 1.2; max-width: 30ch; }
+.detail-heading #edit { flex-shrink: 0; }
+.detail-body { padding: 24px; gap: 24px; }
+.next-step { gap: 8px; }
+.next-step > p:last-child { font-size: 1.125rem; line-height: 1.5; }
+.section-label { font-weight: 600; }
+.saved-context { padding-top: 24px; }
+.saved-context > p { font-size: .9375rem; }
+.note-form textarea { min-height: 96px; }
+.detail-footer { padding: 14px 24px; background: var(--wash); }
+.detail-footer button { font-weight: 600; }
+.board { gap: 16px; }
+.board-guide { margin: 4px 0 0; font-size: .8125rem; }
+.board-guide strong { display: none; }
+.lane { padding: 12px; border-radius: 7px; background: var(--wash); }
+.lane > h3 { background: var(--wash); font-size: .875rem; padding-top: 14px; padding-bottom: 14px; }
+.lane > h3 > span { padding: 1px 6px; border-radius: 4px; background: oklch(90.5% .012 165); color: var(--muted); font-size: .6875rem; }
+.board-card { position: relative; gap: 12px; padding: 14px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 1px 2px oklch(25% .019 165 / .05); }
+.board-card:hover { transform: none; box-shadow: 0 2px 5px oklch(25% .019 165 / .09); border-color: oklch(70% .025 165); }
+.board-card .task-meta { order: -1; padding-right: 20px; min-height: 24px; }
+.board-card .task-status { display: none; }
+.board-card .focus-indicator { white-space: normal; }
+.card-grip { position: absolute; right: 10px; top: 12px; width: 24px; height: 24px; justify-content: center; border-radius: 3px; }
+.card-grip:hover { color: var(--ink); background: var(--wash); }
+.board-card > button { font-size: .9375rem; font-weight: 600; line-height: 1.4; }
+.card-next { font-size: .8125rem; line-height: 1.5; }
+.move-control { padding-top: 10px; font-size: .6875rem; }
+.move-control select { border-color: transparent; background: var(--wash); padding: 4px 6px; font-size: .6875rem; }
+.move-control select:hover, .move-control select:focus-visible { border-color: var(--line); }
+.timer-banner { border-radius: 10px; border-color: oklch(37% .03 165); box-shadow: 0 8px 24px oklch(20% .025 165 / .2); }
+.timer-readout time { font-family: Bricolage,Barlow,sans-serif; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.065em; line-height: 1; }
+.timer-panel-body { gap: 20px; }
+.timer-context { padding-top: 16px; }
+.timer-context strong { font-weight: 500; font-size: .9375rem; }
+.timer-task-label { letter-spacing: .07em; }
+.focus-meter { height: 4px; margin-top: 8px; overflow: hidden; background: oklch(40% .025 165); border-radius: 2px; }
+.focus-meter > span { display: block; height: 100%; width: 100%; background: oklch(84% .065 165); transform-origin: left; transition: transform 1s linear; }
+.timer-banner[data-panel=minimized] .focus-meter { display: none; }
+dialog { border-radius: 10px; box-shadow: 0 20px 64px oklch(20% .025 165 / .18); }
+.dialog-top { padding: 20px 24px; }
+.dialog-top h2 { font-size: 1.375rem; }
+.dialog-body label { color: var(--ink); font-weight: 500; }
+.dialog-body label :is(input,textarea,select) { font-weight: 400; }
+.dialog-footer { background: var(--wash); }
+.activity .activity-entry { padding-block: 24px; }
+.activity-content > p { max-width: 65ch; line-height: 1.6; }
+.folio-identity h2 { letter-spacing: -.045em; }
+.folio-identity canvas { border-radius: 12px; }
+.folio-entry { border-radius: 6px; padding: 24px; }
+.folio-entry:hover { transform: none; }
+.folio-entry-meta { margin-bottom: 4px; }
+.folio-entry h3 { font-weight: 600; }
+.folio-rhythm-body { border-radius: 6px; }
+.settings-section { border-radius: 6px; }
+.settings-section-title { gap: 12px; }
+@media (max-width: 1100px) and (min-width: 761px) {
+  .layout { grid-template-columns: 260px minmax(0,1fr); gap: 20px; }
+  .board { gap: 10px; }
+  .lane { padding: 12px; }
+  .board-card { padding: 12px; }
+}
+@media (max-width: 760px) {
+  .topbar { height: auto; padding: 12px 16px; gap: 12px; }
+  .page-switcher summary { min-height: 44px; }
+  .workspace { padding-top: 20px; }
+  .heading { padding-bottom: 16px; }
+  .capture { margin-bottom: 16px; }
+  .capture input, .capture button { min-height: 44px; }
+  .layout { gap: 16px; align-items: stretch; }
+  .task-row { padding: 12px; }
+  .detail-heading { padding: 20px 16px; }
+  .detail-heading h2 { font-size: 1.375rem; }
+  .detail-body { padding: 20px 16px; }
+  .detail-footer { padding: 14px 16px; }
+  .board-card .task-meta { padding-right: 0; }
+  .move-control select { min-height: 44px; font-size: .8125rem; }
+  .dialog-top { padding: 16px; }
+  dialog { border-radius: 0; }
+  .folio-entry { padding: 20px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active, a.button:active { transform: none; }
+  .focus-meter > span { transition: none; }
+}
+.reduce-motion button:active, .reduce-motion a.button:active { transform: none; }
+.reduce-motion .focus-meter > span { transition: none; }
+/* Status has a distinct shape as well as a label; color is supplementary. */
+.task-status > .ui-icon { width: 13px; height: 13px; }
+.lane > h3 > .lane-title { display: inline-flex; align-items: center; gap: 8px; padding: 0; background: transparent; color: var(--ink); font-size: .875rem; font-weight: 600; }
+.lane-title .ui-icon { width: 16px; height: 16px; color: var(--muted); }
+.lane[data-drop=progress] .lane-title .ui-icon { color: oklch(45% .08 65); }
+.lane[data-drop=done] .lane-title .ui-icon { color: var(--accent); }
+/* Work identity and lifecycle must stay readable at a glance. */
+.project-label { font-size: .8125rem; }
+.task-status, .focus-indicator { font-size: .75rem; }
+.activity-task { gap: 16px; }
+.activity-task .ui-icon { flex-shrink: 0; }
+.activity-content footer { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }

@@ -1,0 +1,74 @@
+[
+  {
+    "file": "workspace-electric-light-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-electric-light-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-electric-light-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-electric-light-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-electric-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-electric-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-electric-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-electric-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-sage-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-sage-dark-desktop.png",
+    "width": 1440,
+    "height": 914,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "workspace-sage-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  },
+  {
+    "file": "board-sage-dark-mobile.png",
+    "width": 390,
+    "height": 1014,
+    "source": "Themed standalone HTML proposal; sample fixtures"
+  }
+]

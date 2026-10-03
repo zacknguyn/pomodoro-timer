@@ -1,3 +1,9 @@
+import { mockWorkspace } from './mockWorkspace'
+
+// Phase 1 UI-only: all API calls served from local mock. No auth, no backend.
+// To re-enable backend in Phase 2: set USE_MOCK to false.
+const USE_MOCK = true
+
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 const REQUEST_TIMEOUT_MS = 12_000
 
@@ -42,7 +48,7 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json()
 }
 
-export const workApi = {
+export const workApi = USE_MOCK ? mockWorkspace : {
   exportWorkspace: () => request('/export'),
   listReviewEntries: () => request('/checkpoints'),
   listTasks: () => request('/tasks'),
