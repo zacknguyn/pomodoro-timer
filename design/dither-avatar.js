@@ -2,16 +2,6 @@
 // The application component is unchanged. Same model and animated canvas painter; honors reduced motion.
 (()=>{
 // Adapted from Dither Kit v0.1.0 by ripgrim (MIT).
-const PALETTE = {
-  green: { fill: [40, 210, 110] },
-  blue: { fill: [53, 143, 243] },
-  purple: { fill: [150, 110, 255] },
-  pink: { fill: [240, 90, 190] },
-  orange: { fill: [255, 150, 50] },
-  red: { fill: [240, 70, 70] },
-  grey: { fill: [92, 92, 100] },
-}
-
 function rgb([red, green, blue], intensity = 1, alpha = 1) {
   return `rgba(${Math.round(red * intensity)},${Math.round(green * intensity)},${Math.round(blue * intensity)},${alpha})`
 }
@@ -62,27 +52,6 @@ function xorshift32(seed) {
     state ^= state << 5
     state >>>= 0
     return state / 0x100000000
-  }
-}
-
-function fillOf(color) {
-  return typeof color === 'number' ? hueFill(color) : PALETTE[color].fill
-}
-
-const BLOOM_PRESETS = {
-  low: { blur: 3, brightness: 1.35, opacity: 0.7, saturate: 1.4 },
-  high: { blur: 25, brightness: 2.9, opacity: 0.2, saturate: 3 },
-  aura: { blur: 15, brightness: 2.9, opacity: 0.1, saturate: 3 },
-}
-
-function pixelBloomStyle(bloom) {
-  if (bloom === 'off') return null
-  const preset = BLOOM_PRESETS[bloom]
-  return {
-    filter: `blur(${preset.blur}px) brightness(${preset.brightness}) saturate(${preset.saturate})`,
-    opacity: preset.opacity,
-    mixBlendMode: 'plus-lighter',
-    imageRendering: 'auto',
   }
 }
 
