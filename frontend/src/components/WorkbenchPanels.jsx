@@ -12,11 +12,13 @@ export function StatusLabel({ status }) {
 }
 export function Modal({ title, children, footer, onClose, wide = false }) {
   const ref = useRef(null)
-  const trigger = useRef(document.activeElement)
+  // Keep the original opener when one modal replaces another.
+  const trigger = useRef(document.activeElement?.closest('.wb-modal')?.returnFocusTarget || document.activeElement)
   useEffect(() => {
     const dialog = ref.current
     dialog.showModal()
     const source = trigger.current
+    dialog.returnFocusTarget = source
     return () => { dialog.close(); if (source?.isConnected) source.focus() }
   }, [])
   return <dialog ref={ref} className={`wb-modal ${wide ? 'wb-modal-wide' : ''}`} aria-label={title} onCancel={(event) => { event.preventDefault(); onClose() }}>
@@ -38,7 +40,7 @@ export function TaskEditor({ task, projects, draft, onDraft, onSave, onClose, bu
   }
   const initial = { ...task, note: draft?.note || '' }
   for (const key of draft?.dirty || []) initial[key] = draft[key] ?? initial[key]
-  return <Modal title="Edit task" onClose={onClose} footer={<><button onClick={onClose}>Cancel</button><button className="wb-primary" type="submit" form="wb-edit-task" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button></>}>
+  return <Modal title="Edit task" onClose={onClose} footer={<><button onClick={onClose}>Cancel</button><button className="wb-primary" type="submit" form="wb-edit-task" disabled={busy}>{busy ? 'Saving…' : serverError ? 'Retry save' : 'Save changes'}</button></>}>
     <form id="wb-edit-task" className="wb-form" onSubmit={save} onInput={(event) => { dirty.current.add(event.target.name); onDraft({ ...fields(event.currentTarget), dirty: [...dirty.current] }) }}>
       <label>Title<input name="title" required defaultValue={initial.title} /></label>
       <label>Next step · optional<textarea name="nextStep" defaultValue={initial.nextStep || ''} /></label>
@@ -135,7 +137,7 @@ export function SettingsDialog({ preferences, onSave, onClose, onExport, onProfi
   </Modal>
 }
 export function TaskNoteDialog({ task, draft, onDraft, onSave, onClose, busy, serverError }) {
-  return <Modal title="Add a closing note" onClose={onClose} footer={<><button onClick={onClose} disabled={busy}>Skip</button><button className="wb-primary" form="wb-closing-note" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save note'}</button></>}>
+  return <Modal title="Add a closing note" onClose={onClose} footer={<><button onClick={onClose} disabled={busy}>Skip</button><button className="wb-primary" form="wb-closing-note" type="submit" disabled={busy}>{busy ? 'Saving…' : serverError ? 'Retry save' : 'Save note'}</button></>}>
     <p>{task.title}</p><p className="wb-muted">The task is already done. Leave a useful note, or skip this.</p>
     <form id="wb-closing-note" className="wb-form" onSubmit={(event) => { event.preventDefault(); const field = event.currentTarget.elements.note; const text = field.value.trim(); if (!text) { field.setCustomValidity('Write a note or choose Skip.'); field.reportValidity(); return } onSave(text) }}>
       <label>Closing note<textarea name="note" defaultValue={draft} required placeholder="What changed? Anything useful for later?" onInput={(event) => { event.currentTarget.setCustomValidity(''); onDraft(event.currentTarget.value) }} /></label>
@@ -143,6 +145,6 @@ export function TaskNoteDialog({ task, draft, onDraft, onSave, onClose, busy, se
     </form>
   </Modal>
 }
-export function CompletionDialog({ task, onClose, onNote, onNext, onUndo, busy }) {
-  return <Modal title="Task completed" onClose={onClose} footer={<><button onClick={onUndo} disabled={busy}>Undo completion</button><button onClick={onNote}>Add note · optional</button><button className="wb-primary" onClick={onNext}>Choose next task</button></>}><h3><Check size={18} />{task.title}</h3><p className="wb-muted">Your work is in Done. You can add a closing note now or later.</p></Modal>
+export function CompletionDialog({ task, hasNextTask, onClose, onNote, onNext, onUndo, busy }) {
+  return <Modal title="Task completed" onClose={onClose} footer={<><button onClick={onUndo} disabled={busy}>Undo completion</button><button onClick={onNote}>Add note · optional</button><button className="wb-primary" onClick={onNext}>{hasNextTask ? 'Choose next task' : 'Back to Workspace'}</button></>}><h3><Check size={18} />{task.title}</h3><p className="wb-muted">Your work is in Done. You can add a closing note now or later.</p></Modal>
 }
