@@ -10,14 +10,14 @@
 
 <p align="center">
   <a href="https://github.com/zacknguyn/pomodoro-timer/actions/workflows/ci.yml"><img src="https://github.com/zacknguyn/pomodoro-timer/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <img src="https://img.shields.io/badge/deployment-rehearsal_only-6b7280" alt="Deployment rehearsal only" />
+  <img src="https://img.shields.io/badge/deployment-manual_only-6b7280" alt="Manual deployment only" />
   <img src="https://img.shields.io/badge/data-local_first-65a30d" alt="Local-first data" />
 </p>
 
 Pomogit connects planning, focused execution, and evidence of progress in one calm workspace. Capture work on a board, arrange ideas on a canvas, protect one task with a focus timer, then close the loop with a commit, pull request, or written result.
 
 > [!IMPORTANT]
-> Pomogit is currently local-first and is not hosted. The AWS infrastructure is defined as code for review, while the delivery workflow performs a release rehearsal without credentials or cloud mutations.
+> Pomogit is currently local-first and is not hosted. The AWS infrastructure is defined as code for review. CI checks changes without deploying; deployment remains a separate manual step.
 
 ## The workflow
 
@@ -43,8 +43,6 @@ flowchart LR
     App --> Store[(Local storage)]
 
     Actions[GitHub Actions] --> Checks[Lint, tests, build, security checks]
-    Checks --> Artifact[Immutable frontend artifact]
-    Artifact --> Rehearsal[Release rehearsal]
 
     Terraform[Terraform definition] -. future .-> CDN[CloudFront]
     CDN -. private OAC .-> S3[(Encrypted S3 origin)]
@@ -62,8 +60,8 @@ flowchart LR
 | Browser storage | Active; workspace data remains on the user's device. |
 | Backend | Retained for the future authenticated product; not part of deployment. |
 | Terraform | Defines a private S3 and CloudFront architecture; not applied. |
-| CI | Active on pull requests and `main`. |
-| CD | Rehearsal only: packages, verifies, checksums, and republishes the build artifact. |
+| CI | Runs on every push to `main`, optional pull requests, and manual runs. |
+| CD | No automated deployment. Deployment is a separate manual step. |
 
 ## Technology
 
@@ -126,19 +124,15 @@ terraform validate
 
 There is intentionally no remote state backend, deploy role, AWS credential, `terraform plan`, or `terraform apply` in the repository yet.
 
-## CI/CD rehearsal
+## Solo development and CI
 
-The [`CI` workflow](./.github/workflows/ci.yml) models a build-once delivery path:
+Direct commits to `main` are supported; pull requests are optional. The [`CI` workflow](./.github/workflows/ci.yml) runs on every push to `main`, on pull requests when used, and on manual runs:
 
 1. Scan tracked files for common credential formats.
 2. Audit, lint, test, and build the frontend.
 3. Audit and syntax-check the backend.
-4. Format-check and validate Terraform without a state backend.
-5. Upload the tested frontend as a commit-addressed artifact.
-6. On `main` or a manual run, download that exact artifact and generate `SHA256SUMS`.
-7. Publish a deployment-rehearsal summary and retain the bundle for seven days.
 
-The workflow has read-only repository permissions and deliberately receives no AWS credentials. Enabling deployment later will require a separately reviewed GitHub OIDC role and environment approval.
+CI has read-only repository permissions. It does not validate Terraform, upload release artifacts, rehearse a release, or deploy. Deployment remains manual and must be configured separately when hosting is introduced.
 
 GitHub CodeQL default setup scans Actions and JavaScript/TypeScript on the default branch and on pull requests targeting it.
 
@@ -150,7 +144,7 @@ GitHub CodeQL default setup scans Actions and JavaScript/TypeScript on the defau
 ├── backend/               # Future authenticated API and Lambda adapters
 ├── terraform/             # Review-only AWS infrastructure definition
 └── .github/
-    ├── workflows/ci.yml   # CI and release rehearsal
+    ├── workflows/ci.yml   # Frontend checks and security audits
     └── dependabot.yml     # Dependency maintenance
 ```
 
