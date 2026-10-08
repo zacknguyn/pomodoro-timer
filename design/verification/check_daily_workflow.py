@@ -33,10 +33,22 @@ def run(browser, output):
         # Only this temporary browser profile is reset; no user's local data is touched.
         browser.script("localStorage.setItem('pomogit.mock.v1',JSON.stringify({tasks:[],checkpoints:[],sessions:[],session:null,seq:100}))")
         load('work')
-        assert browser.script("return document.querySelector('.wb-heading h1').textContent==='What are you working on?' && document.querySelector('.wb-focus').hidden")
+        assert browser.script("return document.querySelector('.wb-heading h1').textContent==='Workspace' && document.querySelector('.wb-work-empty h2').textContent==='Create your first task' && document.querySelector('.wb-focus').hidden")
         browser.screenshot(output/f'empty-{width}.png')
-        page('tasks')
+        click('.wb-empty-actions .wb-primary')
+        assert browser.script("return document.activeElement.matches('.wb-capture input')"), 'first-task action must focus capture'
+        page('review')
+        assert browser.script("return document.querySelector('.wb-empty h2').textContent==='Your work will leave a trail here' && !document.querySelector('.wb-filters')"), 'empty history must explain what will appear'
+        browser.screenshot(output/f'empty-activity-{width}.png')
+        click('.wb-empty .wb-primary')
+        assert browser.script("return location.hash==='#tasks' && !!document.querySelector('.wb-board-empty') && !document.querySelector('.wb-board').textContent.includes('Drop a task here')")
+        browser.screenshot(output/f'empty-board-{width}.png')
+        click('.wb-board-empty button')
+        assert browser.script("return document.activeElement.matches('.wb-capture input') && document.activeElement.value==='Fix the OAuth callback retry' && !document.querySelector('.wb-board-card')"), 'example must populate a draft without creating a task'
+        field('.wb-capture input','')
         browser.type('.wb-capture input','Verify callback recovery')
+        page('review');page('tasks')
+        assert browser.script("return document.querySelector('.wb-capture input').value==='Verify callback recovery'"), 'capture draft must survive page navigation'
         click('.wb-capture button')
         capture_destination=browser.script('return location.hash')
         assert capture_destination=='#tasks'
@@ -45,7 +57,26 @@ def run(browser, output):
         click('.wb-card-title');click('.wb-modal footer button:first-child')
         field('[name=project]','checkout-api');field('[name=nextStep]','Add the regression test.')
         field('[name=status]','ready')
-        click('button[form=wb-edit-task][type=submit]'); dismiss()
+        click('.wb-modal header button')
+        assert browser.script("return document.activeElement.matches('.wb-card-title')"), 'editor must restore the original Board card after replacing inspection'
+        click('.wb-card-title');click('.wb-modal footer button:first-child')
+        assert browser.script("return document.querySelector('#wb-edit-task [name=nextStep]').value==='Add the regression test.'"), 'closing the editor must preserve its draft'
+        browser.page("import(performance.getEntriesByType('resource').find(e=>new URL(e.name).pathname==='/src/lib/workApi.js').name).then(({workApi})=>{window.retryApi=workApi;window.originalRetryUpdate=workApi.updateTask;window.retrySaveCalls=0;workApi.updateTask=async(...args)=>{retrySaveCalls++;if(retrySaveCalls===1)throw new Error('Transient save failure');return originalRetryUpdate(...args)}})")
+        settle();click('button[form=wb-edit-task][type=submit]')
+        assert browser.script("return document.querySelector('button[form=wb-edit-task]').textContent==='Retry save' && document.querySelector('#wb-edit-task .wb-error').textContent.includes('Transient save failure') && document.querySelector('#wb-edit-task [name=nextStep]').value==='Add the regression test.'")
+        click('button[form=wb-edit-task][type=submit]')
+        assert browser.page("retrySaveCalls===2 && !document.querySelector('#wb-edit-task')"), 'Retry save must repeat the save and close on success'
+        browser.page("retryApi.updateTask=originalRetryUpdate;void 0")
+        dismiss()
+        # Empty filter results must differ from a genuinely empty workspace.
+        for route in ['tasks','work','review']:
+            page(route)
+            browser.type('.wb-search input','no-such-regression-task')
+            settle()
+            assert browser.script("return document.querySelector('.wb-empty h2').textContent.includes('No matching') && !document.querySelector('.wb-detail') && !document.querySelector('.wb-board-card') && !document.querySelector('.wb-activity article')")
+            browser.screenshot(output/f'filtered-{route}-{width}.png')
+            click('.wb-empty .wb-primary')
+            assert browser.script("return document.querySelector('.wb-search input').value==='' && !document.querySelector('.wb-empty')"), 'clearing filters must restore existing content'
         page('tasks');click('.wb-card-title')
         assert browser.script("return document.querySelector('.wb-modal').getAttribute('aria-label')==='Verify callback recovery' && !document.querySelector('#wb-edit-task')")
         browser.screenshot(output/f'inspection-{width}.png')
@@ -60,6 +91,7 @@ def run(browser, output):
         click('.wb-note-form button[type=submit]');dismiss()
         click('.wb-detail footer button')
         assert browser.script("return document.querySelector('.wb-modal').getAttribute('aria-label')==='Task completed' && !document.querySelector('.wb-focus-meter') && !document.querySelector('.wb-error')")
+        assert browser.script("return document.querySelector('.wb-modal footer .wb-primary').textContent==='Back to Workspace'"), 'last task must not offer a nonexistent next task'
         click('.wb-modal footer button:nth-of-type(2)')
         optional_note_editor=browser.script("return document.querySelector('.wb-modal').getAttribute('aria-label')")
         assert optional_note_editor=='Add a closing note'
@@ -67,6 +99,11 @@ def run(browser, output):
         browser.type('#wb-closing-note textarea','Shipped the retry regression test.')
         browser.screenshot(output/f'closing-note-{width}.png')
         click('button[form=wb-closing-note][type=submit]');dismiss()
+        load('work')
+        assert browser.script("return document.querySelector('.wb-work-empty h2').textContent==='All caught up' && !document.querySelector('.wb-task-chooser') && document.querySelector('.wb-focus').hidden"), 'completed workspace must not pretend filters hid unfinished work'
+        browser.screenshot(output/f'finished-{width}.png')
+        click('.wb-empty-actions button:last-child')
+        assert browser.script("return location.hash==='#tasks' && document.querySelector('[aria-label=\"Filter by status\"]').value==='done' && !!document.querySelector('.wb-lane[data-drop=done] .wb-board-card')"), 'completed-work action must lead to Done in Board'
         load('tasks')
         assert browser.script("const c=document.querySelector('.wb-lane[data-drop=done] .wb-board-card');return !!c && c.textContent.includes('Verify callback recovery')")
         click('.wb-card-title')
@@ -75,7 +112,7 @@ def run(browser, output):
         assert browser.script("return document.querySelector('.wb-activity').textContent.includes('Covered the expired callback')")
         assert browser.script("return performance.getEntriesByType('resource').every(e=>!new URL(e.name).pathname.startsWith('/api/'))")
         browser.screenshot(output/f'activity-{width}.png')
-        cases.append({'width':width,'empty_capture_organize_inspect_focus_note_finish_reload_activity':'passed','capture_destination':capture_destination,'single_action_completion':True,'optional_note_dialog':optional_note_editor})
+        cases.append({'width':width,'empty_capture_organize_inspect_focus_note_finish_reload_activity':'passed','capture_destination':capture_destination,'first_use_and_filter_states':'passed','single_action_completion':True,'optional_note_dialog':optional_note_editor})
     # Returning to selected work preserves context and active focus takes priority.
     browser.script("localStorage.removeItem('pomogit.mock.v1')")
     browser.viewport(1440,1000);load('work')
@@ -112,8 +149,22 @@ def run(browser, output):
     browser.script("const p=JSON.parse(localStorage.getItem('pomogit.work-protocol'));p.lastTaskId='deleted-task';localStorage.setItem('pomogit.work-protocol',JSON.stringify(p))")
     load('work');assert browser.script("return !!document.querySelector('.wb-detail') && document.querySelector('.wb-detail .wb-status').dataset.status!=='done'")
     assert browser.script("return performance.getEntriesByType('resource').every(e=>!new URL(e.name).pathname.startsWith('/api/'))")
+    # Both navigation layouts and palettes must keep empty-state actions reachable.
+    for width,height,navigation,palette,brightness in [(1440,700,'sidebar','electric','dark'),(1440,700,'navbar','sage','light'),(390,844,'navbar','electric','dark'),(320,700,'sidebar','sage','light')]:
+        browser.viewport(width,height)
+        browser.script("localStorage.setItem('pomogit.mock.v1',JSON.stringify({tasks:[],checkpoints:[],sessions:[],session:null,seq:100}));const p=JSON.parse(localStorage.getItem('pomogit.work-protocol'));Object.assign(p,{navigation:arguments[0],palette:arguments[1],brightness:arguments[2]});localStorage.setItem('pomogit.work-protocol',JSON.stringify(p))",navigation,palette,brightness)
+        for route in ['work','tasks','review']:
+            load(route)
+            assert browser.script("return document.documentElement.scrollWidth<=innerWidth && document.querySelector('.premium-app').dataset.navigation===arguments[0]",navigation), 'empty state must fit both navigation layouts'
+            if route=='work': click('.wb-empty-actions .wb-primary')
+            elif route=='tasks': click('.wb-board-empty button')
+            else: click('.wb-empty .wb-primary')
+            if route!='review':
+                assert browser.script("return document.activeElement.matches('.wb-capture input')")
+            load(route)
+            browser.screenshot(output/f'first-use-{route}-{width}-{navigation}-{palette}.png')
     (output/'results.json').write_text(json.dumps({'cases':cases,'return_context':{'selected_before_reload':before,'shown_after_reload':after}},indent=2))
-    print(f'PASS: desktop/mobile complete workflow; four workflow improvements and failure recovery passed. Evidence: {output}',flush=True)
+    print(f'PASS: desktop/mobile complete workflow; first-use states, both navigation layouts, and failure recovery passed. Evidence: {output}',flush=True)
 
 
 audit.run=run
