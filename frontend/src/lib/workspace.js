@@ -69,7 +69,7 @@ export function migrateStore(raw = {}) {
   const recordsSource = Array.isArray(raw.records) ? raw.records : Array.isArray(raw.history) ? raw.history : []
   const legacyQueue = Array.isArray(raw.queue) ? raw.queue : []
   const taskSource = Array.isArray(raw.tasks) ? raw.tasks : legacyQueue
-  let tasks = taskSource.map((task, index) => normalizeTask(task, Array.isArray(raw.tasks) ? 'ready' : 'ready', index))
+  let tasks = taskSource.map((task, index) => normalizeTask(task, 'ready', index))
   let currentSession = normalizeSession(raw.currentSession || raw.session || raw.completed || raw.active, Boolean(raw.completed))
 
   if (currentSession && !currentSession.taskId) {
