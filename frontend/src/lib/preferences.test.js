@@ -63,3 +63,13 @@ test('workspace appearance validates stored values and keeps the selected layout
   assert.equal(readWorkProtocol(storage).brightness, 'dark')
   assert.equal(readWorkProtocol(storage).expand, false)
 })
+
+
+test('return point survives appearance updates and rejects malformed task IDs', () => {
+  const storage = memoryStorage()
+  writeWorkProtocol(storage, { ...readWorkProtocol(storage), lastTaskId: 'task-42' })
+  writeWorkProtocol(storage, { ...readWorkProtocol(storage), brightness: 'dark' })
+  assert.equal(readWorkProtocol(storage).lastTaskId, 'task-42')
+  storage.setItem(WORK_PROTOCOL_KEY, JSON.stringify({ lastTaskId: { id: 'task-42' } }))
+  assert.equal(readWorkProtocol(storage).lastTaskId, null)
+})

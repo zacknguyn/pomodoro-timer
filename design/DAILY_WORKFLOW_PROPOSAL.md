@@ -1,24 +1,24 @@
-# Daily workflow milestone: proposed next pass
+# Daily workflow milestone
 
-Status: review only. Maintenance fixes dependencies and removes unused preview helpers; it does not implement the interaction changes below.
+Status: approved and implemented on `feat/pomogit-daily-workflow`; publication approved for pull request review.
 
-## What works today
+## Implemented behavior
 
-An isolated Firefox walkthrough passed at desktop (1440 px) and phone (390 px): empty workspace, capture, project and next-step editing, Board inspection, focus start/pause/resume/stop, notes, completion, persisted task/notes after reload, and Activity. Account bypass and the local workApi mock remain enabled; no API requests were observed. User browser data was not reset or changed.
+1. **Board capture stays in Board.** New tasks appear in Inbox and receive keyboard focus after rendering. Filters clear so the card is visible. Open the card to organize it, then choose Open in Workspace. Workspace capture still selects its new task directly.
+2. **Focused work completes in one action.** Mark done, Board's Move to Done, and the full task editor share the completion path. If the task owns the current session, stop that session before marking it done. Completing another task leaves the session running. A failed stop leaves the task unfinished; a failed completion refreshes the ended timer while leaving the task unfinished.
+3. **Optional notes have a specific dialog.** Add note after completion opens one note field with Save note and Skip. The existing modal keeps its header/footer fixed while its body scrolls. The full task editor remains available through Edit.
+4. **Workspace restores its return point.** Initial load prioritizes the active focused task, then the last selected unfinished task, then another unfinished task. Completed, deleted, and malformed remembered IDs fall back safely. The return point extends the existing `pomogit.work-protocol` preference object; no new storage system was added.
 
-## Four changes to approve
+Native scroll spacing keeps focused Board cards clear of sticky headings and task rows clear of the expanded floating timer.
 
-1. **Keep Board capture in Board.** Capturing a task in Board currently switches to Workspace immediately. Keep the new card in Inbox, bring it into view, and let the user inspect/organize it before choosing “Open in Workspace.” Capturing from Workspace can keep its current destination.
-2. **Complete focused work in one action.** Clicking Mark done while its timer runs currently raises “Stop the timer.” When completing the focused task, end that session, then mark the task done and show the existing completion dialog. Do not stop a session for another task. If either operation fails, show the error and preserve unfinished work.
-3. **Make the optional note action specific.** Add note after completion currently opens Edit task with title, project, reference, status, and all other fields. Use the existing dialog component for a short note form with Save note and Skip. Preserve the full editor behind Edit.
-4. **Remember the return point.** Selecting “Ship the checkpoint copy pass” and reloading currently shows “Fix the OAuth retry.” Restore the active focused task first, otherwise the last selected unfinished task; fall back to another unfinished task if it was completed or removed. Use the existing preference storage rather than a new state system.
+## Scope
 
-## Scope and acceptance
+The visual direction, page names, Dither Kit, and Navbar/Sidebar choices remain in place. Authentication is disabled and workApi mocked. No additional pages, admin dashboard, backend, GitHub connection, AWS work, or deployment.
 
-Keep the current visual direction, page names, Dither Kit, and Navbar/Sidebar choices. No additional pages, admin dashboard, backend, real authentication, GitHub connection, AWS work, or deployment.
+## Verification
 
-Acceptance: a user captures and organizes without an unexpected page switch, completes focused work without a corrective error, adds a note without editing unrelated fields, and returns to the same unfinished task on desktop and mobile. Existing drafts, timer transitions, filter behavior, and dialog scroll boundaries must remain intact.
+`design/verification/check_daily_workflow.py` exercises capture, organization, read-only inspection, focus transitions, one-action completion, closing notes, reload persistence, and Activity at desktop (1440 px) and phone (390 px). It also covers Skip, active-session priority, completed/deleted return points, completing another task during focus, full-editor completion, and injected stop/completion failures. It runs in a temporary Firefox profile; user browser data is untouched, and no API requests are expected.
 
-## Evidence
+Run with local Vite on port 5180, or set `POMOGIT_APP_URL`. Use `--output` for the results and screenshots directory. Fault injection uses the loaded mock API in the page's JavaScript context.
 
-`design/verification/check_daily_workflow.py` is a snapshot audit of the current workflow and its four gaps. Run with local Vite on port 5180, or set `POMOGIT_APP_URL`. The audit uses a temporary Firefox profile and saves results/screenshots under the provided `--output` directory. Update it when these proposed interactions are approved and implemented.
+Required checks: `npm run lint && npm test && npm run build` from `frontend`, `git diff --check` from the repository root.

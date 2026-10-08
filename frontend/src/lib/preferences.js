@@ -19,6 +19,7 @@ export const DEFAULT_WORK_PROTOCOL = {
   expand: true,
   checkpointRule: 'always',
   weekStart: 'monday',
+  lastTaskId: null,
 }
 
 export function hasOpenedWorkspace(storage) {
@@ -60,6 +61,7 @@ export function readWorkProtocol(storage) {
   const focusMinutes = Number(protocol.focusMinutes)
   return {
     ...protocol,
+    lastTaskId: typeof protocol.lastTaskId === 'string' && protocol.lastTaskId ? protocol.lastTaskId : null,
     palette: protocol.palette === 'sage' ? 'sage' : 'electric',
     brightness: ['light', 'dark'].includes(protocol.brightness) ? protocol.brightness : 'system',
     navigation: protocol.navigation === 'navbar' ? 'navbar' : 'sidebar',

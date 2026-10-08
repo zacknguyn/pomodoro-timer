@@ -3,7 +3,7 @@ import { ArrowRight, ChevronDown, Clock, CircleCheck, Folder, Link, Pause, GripV
 import { DitherAvatar } from './dither-kit/DitherAvatar'
 import { workApi } from '../lib/workApi'
 import { writeProfile } from '../lib/preferences'
-import { CompletionDialog, FloatingFocus, Modal, NoteHistory, ProfileEditor, SettingsDialog, StatusLabel, TaskEditor, TaskInspection, } from './WorkbenchPanels'
+import { CompletionDialog, FloatingFocus, Modal, NoteHistory, ProfileEditor, SettingsDialog, StatusLabel, TaskEditor, TaskInspection, TaskNoteDialog, } from './WorkbenchPanels'
 import { WORKBENCH_STATUSES, readableDate, safeReference } from '../lib/workbenchView'
 import './Workbench.css'
 
@@ -36,6 +36,8 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
   const [publicProfile, setPublicProfile] = useState(false)
   const [period, setPeriod] = useState(28)
   const [appHeight, setAppHeight] = useState(window.visualViewport?.height || window.innerHeight)
+  const returnTaskId = useRef(preferences.lastTaskId)
+  const capturedCardId = useRef(null)
   const drafts = useRef(new Map())
   const editorDrafts = useRef(new Map())
   const root = useRef(null)
@@ -58,7 +60,7 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     setTasks(hydrated)
     setSession(nextSession)
     setSessions(snapshot.sessions || [])
-    setSelectedId((current) => hydrated.some((task) => task.id === current) ? current : hydrated.find((task) => task.id === nextSession?.taskId)?.id || hydrated.find((task) => task.status !== 'done')?.id || null)
+    setSelectedId((current) => hydrated.find((task) => task.id === current && task.status !== 'done')?.id || hydrated.find((task) => task.id === nextSession?.taskId && task.status !== 'done')?.id || hydrated.find((task) => task.id === returnTaskId.current && task.status !== 'done')?.id || hydrated.find((task) => task.status !== 'done')?.id || null)
     return hydrated
   }, [])
   useEffect(() => {
@@ -101,6 +103,11 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     return () => document.removeEventListener('pointerdown', closeMenus)
   }, [])
   const filtered = useMemo(() => tasks.filter((task) => (!project || task.project === project) && (!status || task.status === status) && `${task.title} ${task.project} ${task.nextStep} ${task.notes.map((note) => note.text).join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [tasks, project, status, query])
+  useEffect(() => {
+    if (view !== 'tasks' || !capturedCardId.current) return
+    const card = root.current?.querySelector(`[data-task="${CSS.escape(capturedCardId.current)}"] .wb-card-title`)
+    if (card) { card.scrollIntoView({ block: 'nearest', behavior: 'auto' }); card.focus({ preventScroll: true }); capturedCardId.current = null }
+  }, [filtered, view])
   const projects = [...new Set(tasks.map((task) => task.project).filter(Boolean))].sort()
   const taskList = filtered.filter((task) => status === 'done' || task.status !== 'done')
   const selected = taskList.find((task) => task.id === selectedId) || taskList[0] || null
@@ -116,21 +123,24 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     queueMicrotask(() => { if (active) setReadNoteIds((previous) => new Set([...previous, ...ids])) })
     return () => { active = false }
   }, [view, allEvents, readNoteIds])
+  useEffect(() => {
+    if (view === 'work' && selectedId && preferences.lastTaskId !== selectedId) onPreferences({ lastTaskId: selectedId })
+  }, [view, selectedId, preferences.lastTaskId, onPreferences])
   function clearFilters() { setQuery(''); setProject(''); setStatus('') }
   function navigate(next) { setError(''); onNavigate(next) }
   function choose(task) { if (task.status === 'done') { setDialog({ type: 'inspect', taskId: task.id }); return } setSelectedId(task.id); setChooserOpen(false); navigate('work') }
   const perform = useCallback(async (action, message = '', undoAction = null) => {
     if (busy) return null
     setBusy(true); setError('')
-    try { const result = await action(); await refresh(); if (message) { setNotice(message); setUndo(() => undoAction) } return result ?? true } catch (failure) { setError(failure.message); return null } finally { setBusy(false) }
+    try { const result = await action(); await refresh(); if (message) { setNotice(message); setUndo(() => undoAction) } return result ?? true } catch (failure) { await refresh().catch(() => {}); setError(failure.message); return null } finally { setBusy(false) }
   }, [busy, refresh])
   async function capture(event) {
     event.preventDefault()
     const value = captureRef.current.value.trim()
     if (!value) return
     const reference = safeReference(value)
-    const created = await perform(() => workApi.createTask({ title: reference ? new URL(reference).pathname.slice(1) || new URL(reference).hostname : value, referenceUrl: reference, project }), 'Task created. Starting focus is optional.')
-    if (created) { setUndo(() => () => perform(async () => { const active = await workApi.getActiveSession(); if (active?.taskId === created.id) throw new Error('Stop this task’s timer before undoing its creation.'); return workApi.deleteTask(created.id) }, 'Task creation undone.')); captureRef.current.value = ''; clearFilters(); setSelectedId(created.id); navigate('work') }
+    const created = await perform(async () => { const task = await workApi.createTask({ title: reference ? new URL(reference).pathname.slice(1) || new URL(reference).hostname : value, referenceUrl: reference, project }); if (view === 'tasks') capturedCardId.current = task.id; return task }, view === 'tasks' ? 'Added to Inbox. Open the card to organize it.' : 'Task created. Starting focus is optional.')
+    if (created) { setUndo(() => () => perform(async () => { const active = await workApi.getActiveSession(); if (active?.taskId === created.id) throw new Error('Stop this task’s timer before undoing its creation.'); return workApi.deleteTask(created.id) }, 'Task creation undone.')); captureRef.current.value = ''; clearFilters(); if (view !== 'tasks') { setSelectedId(created.id); navigate('work') } }
   }
   async function start(id) {
     if (session || !id) return
@@ -143,16 +153,23 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     if (result && action === 'end') setPanel('compact')
     return result
   }, [session, perform])
+  async function updateTask(task, changes) {
+    if (changes.status === 'done' && session?.taskId === task.id) {
+      await workApi.transitionSession(session.id, 'end')
+      setPanel('compact')
+    }
+    return workApi.updateTask(task.id, changes)
+  }
   async function move(task, nextStatus) {
     if (task.status === nextStatus) return
-    const result = await perform(() => workApi.updateTask(task.id, { status: nextStatus }), `Moved to ${WORKBENCH_STATUSES.find(([key]) => key === nextStatus)[1]}.`, () => perform(() => workApi.updateTask(task.id, { status: task.status }), 'Move undone.'))
+    const result = await perform(() => updateTask(task, { status: nextStatus }), `Moved to ${WORKBENCH_STATUSES.find(([key]) => key === nextStatus)[1]}.`, () => perform(() => workApi.updateTask(task.id, { status: task.status }), 'Move undone.'))
     if (result && nextStatus === 'done') setDialog({ type: 'completed', taskId: task.id, previousStatus: task.status })
   }
   async function saveTask(values) {
     const task = activeDialogTask
     const notes = values.note.trim() ? [...task.notes, { id: crypto.randomUUID(), text: values.note.trim(), createdAt: new Date().toISOString(), kind: 'note' }] : task.notes
-    const result = await perform(() => workApi.updateTask(task.id, { title: values.title.trim(), project: values.project.trim(), nextStep: values.nextStep.trim(), referenceUrl: values.referenceUrl.trim(), status: values.status, notes }), 'Task saved.', () => perform(() => workApi.updateTask(task.id, { title: task.title, project: task.project, nextStep: task.nextStep, referenceUrl: task.referenceUrl, status: task.status, notes: task.notes }), 'Edit undone.'))
-    if (result) { editorDrafts.current.delete(task.id); setDialog(null) }
+    const result = await perform(() => updateTask(task, { title: values.title.trim(), project: values.project.trim(), nextStep: values.nextStep.trim(), referenceUrl: values.referenceUrl.trim(), status: values.status, notes }), 'Task saved.', () => perform(() => workApi.updateTask(task.id, { title: task.title, project: task.project, nextStep: task.nextStep, referenceUrl: task.referenceUrl, status: task.status, notes: task.notes }), 'Edit undone.'))
+    if (result) { editorDrafts.current.delete(task.id); setDialog(values.status === 'done' && task.status !== 'done' ? { type: 'completed', taskId: task.id, previousStatus: task.status } : null) }
   }
   async function saveNote(event) {
     event.preventDefault()
@@ -162,6 +179,12 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     if (!text && nextStep === selected.nextStep) { setUndo(null); setNotice('No changes to save.'); return }
     const result = await perform(() => workApi.updateTask(selected.id, { nextStep, notes: text ? [...selected.notes, { id: crypto.randomUUID(), text, createdAt: new Date().toISOString(), kind: 'note' }] : selected.notes }), text ? 'Note saved.' : 'Next step updated.', () => perform(() => workApi.updateTask(selected.id, { nextStep: selected.nextStep, notes: selected.notes }), 'Note change undone.'))
     if (result) { drafts.current.delete(selected.id); event.target.elements.note.value = ''; event.target.elements.nextStep.value = nextStep }
+  }
+  async function saveClosingNote(text) {
+    const task = activeDialogTask
+    const notes = [...task.notes, { id: crypto.randomUUID(), text: text.trim(), createdAt: new Date().toISOString(), kind: 'note' }]
+    const result = await perform(() => workApi.updateTask(task.id, { notes }), 'Note saved.', () => perform(() => workApi.updateTask(task.id, { notes: task.notes }), 'Note undone.'))
+    if (result) { drafts.current.set(task.id, { ...drafts.current.get(task.id), note: '' }); setDialog(null) }
   }
   function saveProfile(next) { writeProfile(localStorage, next); onProfile(next); setDialog(null); setUndo(null); setNotice('Profile saved locally.') }
   function finishDrag() {
@@ -229,7 +252,8 @@ export default function Workbench({ view, onNavigate, profile, onProfile, admin,
     <FloatingFocus session={session} task={focused} selectedTask={selected} duration={preferences.focusMinutes * 60} panel={panel} onPanel={setPanel} onStart={start} onTransition={transition} onSelect={(id) => { clearFilters(); setSelectedId(id); navigate('work') }} busy={busy} hidden={!tasks.length || (!session && (!['work', 'tasks'].includes(view) || !selected || selected.status === 'done')) || (textEntry && matchMedia('(max-width: 760px)').matches)} onHeight={setTimerHeight} />
     {dialog?.type === 'edit' && activeDialogTask && <TaskEditor key={activeDialogTask.id} task={activeDialogTask} projects={projects} draft={editorDrafts.current.get(activeDialogTask.id)} onDraft={(values) => editorDrafts.current.set(activeDialogTask.id, values)} onSave={saveTask} onClose={() => setDialog(null)} busy={busy} serverError={error} />}
     {dialog?.type === 'inspect' && activeDialogTask && <TaskInspection task={activeDialogTask} onClose={() => setDialog(null)} onEdit={() => setDialog({ type: 'edit', taskId: activeDialogTask.id })} onWork={async () => { if (activeDialogTask.status === 'done') { const result = await perform(() => workApi.updateTask(activeDialogTask.id, { status: 'ready' })); if (!result) return } clearFilters(); setSelectedId(activeDialogTask.id); setDialog(null); navigate('work') }} busy={busy} />}
-    {dialog?.type === 'completed' && activeDialogTask && <CompletionDialog task={activeDialogTask} busy={busy} onClose={() => setDialog(null)} onNote={() => setDialog({ type: 'edit', taskId: activeDialogTask.id })} onNext={() => { setDialog(null); clearFilters(); setSelectedId(tasks.find((task) => task.status !== 'done')?.id || null); setChooserOpen(true); navigate('work') }} onUndo={async () => { const result = await perform(() => workApi.updateTask(activeDialogTask.id, { status: dialog.previousStatus }), 'Completion undone.'); if (result) setDialog(null) }} />}
+    {dialog?.type === 'completed' && activeDialogTask && <CompletionDialog task={activeDialogTask} busy={busy} onClose={() => setDialog(null)} onNote={() => setDialog({ type: 'note', taskId: activeDialogTask.id })} onNext={() => { setDialog(null); clearFilters(); setSelectedId(tasks.find((task) => task.status !== 'done')?.id || null); setChooserOpen(true); navigate('work') }} onUndo={async () => { const result = await perform(() => workApi.updateTask(activeDialogTask.id, { status: dialog.previousStatus }), 'Completion undone.'); if (result) setDialog(null) }} />}
+    {dialog?.type === 'note' && activeDialogTask && <TaskNoteDialog task={activeDialogTask} draft={drafts.current.get(activeDialogTask.id)?.note || ''} onDraft={(note) => drafts.current.set(activeDialogTask.id, { ...drafts.current.get(activeDialogTask.id), note })} onSave={saveClosingNote} onClose={() => setDialog(null)} busy={busy} serverError={error} />}
     {dialog?.type === 'profile' && <ProfileEditor profile={profile} reducedMotion={preferences.motion === 'reduced'} onSave={saveProfile} onClose={() => setDialog(null)} />}
     {dialog?.type === 'logout' && <Modal title="Leave your workspace?" onClose={() => setDialog(null)} footer={<><button onClick={() => setDialog(null)}>Keep working</button><button className="wb-primary" disabled={busy} onClick={async () => { if (await transition('end')) { setDialog(null); onExit() } }}>Stop timer and log out</button></>}><p>Your focus timer will stop. The task stays in progress, and your saved work remains in this local preview.</p></Modal>}
     {dialog?.type === 'settings' && <SettingsDialog preferences={preferences} onClose={() => setDialog(null)} onSave={(next) => { const saved = { ...preferences, ...next }; onPreferences(saved); setDialog(null); setUndo(null); setNotice('Settings saved. Session length applies to the next timer.') }} onExport={exportTasks} onProfile={() => { setDialog(null); navigate('profile') }} />}
