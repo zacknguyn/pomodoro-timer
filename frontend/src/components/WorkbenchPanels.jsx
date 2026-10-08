@@ -134,6 +134,15 @@ export function SettingsDialog({ preferences, onSave, onClose, onExport, onProfi
     </form>
   </Modal>
 }
+export function TaskNoteDialog({ task, draft, onDraft, onSave, onClose, busy, serverError }) {
+  return <Modal title="Add a closing note" onClose={onClose} footer={<><button onClick={onClose} disabled={busy}>Skip</button><button className="wb-primary" form="wb-closing-note" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save note'}</button></>}>
+    <p>{task.title}</p><p className="wb-muted">The task is already done. Leave a useful note, or skip this.</p>
+    <form id="wb-closing-note" className="wb-form" onSubmit={(event) => { event.preventDefault(); const field = event.currentTarget.elements.note; const text = field.value.trim(); if (!text) { field.setCustomValidity('Write a note or choose Skip.'); field.reportValidity(); return } onSave(text) }}>
+      <label>Closing note<textarea name="note" defaultValue={draft} required placeholder="What changed? Anything useful for later?" onInput={(event) => { event.currentTarget.setCustomValidity(''); onDraft(event.currentTarget.value) }} /></label>
+      {serverError && <p className="wb-error" role="alert">{serverError}</p>}
+    </form>
+  </Modal>
+}
 export function CompletionDialog({ task, onClose, onNote, onNext, onUndo, busy }) {
   return <Modal title="Task completed" onClose={onClose} footer={<><button onClick={onUndo} disabled={busy}>Undo completion</button><button onClick={onNote}>Add note · optional</button><button className="wb-primary" onClick={onNext}>Choose next task</button></>}><h3><Check size={18} />{task.title}</h3><p className="wb-muted">Your work is in Done. You can add a closing note now or later.</p></Modal>
 }

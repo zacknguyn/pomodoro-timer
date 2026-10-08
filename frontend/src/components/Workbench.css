@@ -417,3 +417,6 @@
 @media(min-width:1101px) and (min-height:650px){.wb-main-workspace .wb-detail-body{padding-bottom:24px}.wb-main-workspace .wb-task-list{padding-bottom:calc(var(--wb-timer-space) + 16px)}}
 @media(min-width:761px) and (max-width:1050px){.premium-app[data-navigation=sidebar] .wb-layout{grid-template-columns:minmax(0,1fr)}.premium-app[data-navigation=sidebar] .wb-detail{grid-column:1;grid-row:1}.premium-app[data-navigation=sidebar] .wb-task-chooser{grid-column:1;grid-row:2}.premium-app[data-navigation=sidebar] .wb-task-list{max-height:400px;overflow:auto}}
 @media(min-width:761px){.premium-app[data-navigation=sidebar] .wb-notice{left:248px;bottom:calc(var(--wb-timer-space) + 20px);max-width:min(480px,calc(100vw - 272px))}}
+/* Keep native focus scrolling clear of sticky lane headings and the floating timer. */
+.wb-card-title{scroll-margin-block-start:4rem}
+@media(min-width:1101px){.wb-task-list{scroll-padding-block-end:calc(var(--wb-timer-space) + 16px)}}
