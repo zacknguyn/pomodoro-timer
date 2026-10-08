@@ -19,7 +19,11 @@ export function Modal({ title, children, footer, onClose, wide = false }) {
     dialog.showModal()
     const source = trigger.current
     dialog.returnFocusTarget = source
-    return () => { dialog.close(); if (source?.isConnected) source.focus() }
+    return () => {
+      dialog.close()
+      if (source?.isConnected && source !== document.body && !source.disabled && source.getClientRects().length) source.focus()
+      else document.getElementById('wb-main')?.focus()
+    }
   }, [])
   return <dialog ref={ref} className={`wb-modal ${wide ? 'wb-modal-wide' : ''}`} aria-label={title} onCancel={(event) => { event.preventDefault(); onClose() }}>
     <header><h2>{title}</h2><button className="wb-ghost" onClick={onClose} aria-label={`Close ${title}`}><X size={18} /></button></header>
@@ -86,13 +90,17 @@ export function FloatingFocus({ session, task, selectedTask, duration, panel, on
   const progress = getSessionProgress(session, remaining)
   const focused = session ? task : selectedTask
   const paused = session?.status === 'paused'
-  return <aside ref={ref} className={`wb-focus wb-focus-${panel}`} hidden={hidden} aria-label="Focus timer" data-running={Boolean(session)}>
+  const announcement = session
+    ? remaining === 0 ? 'Focus time is up. Your task stays in progress.'
+      : paused ? 'Focus paused.' : `Focusing on ${task?.title || 'your task'}.`
+    : 'Ready to focus.'
+  return <><p className="wb-sr-only" role="status" aria-atomic="true">{announcement}</p><aside ref={ref} className={`wb-focus wb-focus-${panel}`} hidden={hidden} aria-label="Focus timer" data-running={Boolean(session)}>
     <header><span><Clock size={20} /><span>Focus<small>{session ? remaining === 0 ? 'Time is up' : paused ? 'Paused' : 'Focusing' : 'Ready to focus'}</small></span></span><div><button onClick={() => onPanel(panel === 'compact' ? 'normal' : 'compact')} aria-label={panel === 'compact' ? 'Expand timer' : 'Minimize timer'} aria-expanded={panel !== 'compact'}>{panel === 'compact' ? <Maximize size={16} /> : <Minus size={16} />}</button>{panel !== 'compact' && <button onClick={() => onPanel(panel === 'large' ? 'normal' : 'large')} aria-label={panel === 'large' ? 'Restore timer size' : 'Maximize timer'}><Maximize size={16} /></button>}</div></header>
-    <div className="wb-focus-body"><div className="wb-readout"><time aria-label={`${remaining} seconds remaining`}>{formatSessionClock(remaining)}</time><span>{session ? 'remaining' : 'minutes of focus'}</span>{session && <div className="wb-focus-meter" role="progressbar" aria-label="Focus session elapsed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>}</div>
+    <div className="wb-focus-body"><div className="wb-readout"><time role="timer" aria-live="off" aria-label={`${Math.floor(remaining / 60)} minutes ${remaining % 60} seconds remaining`}>{formatSessionClock(remaining)}</time><span>{session ? 'remaining' : 'minutes of focus'}</span>{session && <div className="wb-focus-meter" role="progressbar" aria-label="Focus session elapsed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>}</div>
       <div className="wb-focus-context"><p className="wb-label">{session ? 'Focusing on' : 'Selected task'}</p><strong>{focused?.title || 'Choose a task when you’re ready'}</strong>{session && task?.id !== selectedTask?.id && <button onClick={() => onSelect(task.id)}>Return to focused task<ArrowRight size={16} /></button>}</div>
       <div className="wb-focus-actions">{session ? <><button className="wb-primary" onClick={() => onTransition(paused ? 'resume' : 'pause')} disabled={busy || (paused && remaining === 0)}>{paused ? <Play size={16} /> : <Pause size={16} />}{paused ? 'Resume' : 'Pause'}</button><button onClick={() => onTransition('end')} disabled={busy}><Square size={15} />Stop</button></> : <button className="wb-primary" onClick={() => onStart(focused?.id)} disabled={busy || !focused || focused.status === 'done'}><Play size={16} />Start focus</button>}</div>
     </div>
-  </aside>
+  </aside></>
 }
 export function ProfileEditor({ profile, onSave, onClose, reducedMotion = false }) {
   const [seed, setSeed] = useState(profile.avatarSeed || 0)

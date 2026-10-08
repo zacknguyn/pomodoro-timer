@@ -1,4 +1,5 @@
 :root {
+  --control-line:oklch(62% .04 305);--profile-accent-lightness:36%;
   --canvas:oklch(97% .009 315);--paper:oklch(99.4% .003 315);--ink:oklch(24% .045 305);
   --muted:oklch(43% .035 305);--line:oklch(77% .024 310);--wash:oklch(93% .024 310);
   --accent:oklch(47% .23 300);--on-accent:oklch(99% .003 310);--raised:oklch(96% .015 315);
@@ -12,6 +13,7 @@
   color-scheme:light;
 }
 :root[data-palette=sage] {
+  --control-line:oklch(62% .025 165);
   --canvas:oklch(97.4% .004 165);--paper:oklch(99.4% .002 165);--ink:oklch(25% .019 165);
   --muted:oklch(45% .018 165);--line:oklch(77% .018 165);--wash:oklch(94.8% .009 165);
   --accent:oklch(36% .065 165);--on-accent:oklch(99% .002 165);--raised:oklch(96% .006 165);
@@ -20,6 +22,7 @@
   --focus-accent:oklch(85% .055 165);--focus-on-accent:oklch(23% .03 165);--profile-mid:oklch(72% .065 165);
 }
 :root[data-theme=dark] {
+  --profile-accent-lightness:80%;
   --canvas:oklch(17% .025 305);--paper:oklch(23% .032 305);--raised:oklch(28% .038 305);
   --ink:oklch(94% .015 315);--muted:oklch(77% .026 315);--line:oklch(46% .045 305);--wash:oklch(26% .036 305);
   --accent:oklch(80% .135 315);--on-accent:oklch(21% .05 305);--error:oklch(81% .11 25);
