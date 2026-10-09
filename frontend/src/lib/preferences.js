@@ -48,16 +48,16 @@ function readObject(storage, key, fallback) {
   }
 }
 
-export function readProfile(storage) {
-  return readObject(storage, PROFILE_KEY, DEFAULT_PROFILE)
+export function readProfile(storage, accountId = null, displayName = DEFAULT_PROFILE.displayName) {
+  return readObject(storage, accountId ? `${PROFILE_KEY}:${accountId}` : PROFILE_KEY, { ...DEFAULT_PROFILE, displayName })
 }
 
-export function writeProfile(storage, profile) {
-  storage.setItem(PROFILE_KEY, JSON.stringify({ ...DEFAULT_PROFILE, ...profile }))
+export function writeProfile(storage, profile, accountId = null) {
+  storage.setItem(accountId ? `${PROFILE_KEY}:${accountId}` : PROFILE_KEY, JSON.stringify({ ...DEFAULT_PROFILE, ...profile }))
 }
 
-export function readWorkProtocol(storage) {
-  const protocol = readObject(storage, WORK_PROTOCOL_KEY, DEFAULT_WORK_PROTOCOL)
+export function readWorkProtocol(storage, accountId = null) {
+  const protocol = readObject(storage, accountId ? `${WORK_PROTOCOL_KEY}:${accountId}` : WORK_PROTOCOL_KEY, DEFAULT_WORK_PROTOCOL)
   const focusMinutes = Number(protocol.focusMinutes)
   return {
     ...protocol,
@@ -72,6 +72,6 @@ export function readWorkProtocol(storage) {
   }
 }
 
-export function writeWorkProtocol(storage, protocol) {
-  storage.setItem(WORK_PROTOCOL_KEY, JSON.stringify({ ...DEFAULT_WORK_PROTOCOL, ...protocol }))
+export function writeWorkProtocol(storage, protocol, accountId = null) {
+  storage.setItem(accountId ? `${WORK_PROTOCOL_KEY}:${accountId}` : WORK_PROTOCOL_KEY, JSON.stringify({ ...DEFAULT_WORK_PROTOCOL, ...protocol }))
 }

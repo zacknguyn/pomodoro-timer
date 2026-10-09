@@ -38,3 +38,20 @@ test('editing notes and lifecycle together retains both pieces of evidence', asy
   await mockWorkspace.updateTask(task.id, { status: 'ready' })
   assert.equal((await mockWorkspace.listTasks()).find((item) => item.id === task.id).status, 'ready')
 })
+
+
+test('deletion blocks running or paused focus and removes only that task’s history', async () => {
+  mockWorkspace.reset()
+  const task = await mockWorkspace.createTask({ title: 'Discard this task' })
+  const session = await mockWorkspace.createSession(task.id, 1500)
+  await assert.rejects(mockWorkspace.deleteTask(task.id), /Stop the timer/)
+  await mockWorkspace.transitionSession(session.id, 'pause')
+  await assert.rejects(mockWorkspace.deleteTask(task.id), /Stop the timer/)
+  await mockWorkspace.transitionSession(session.id, 'end')
+  const before = await mockWorkspace.exportWorkspace()
+  await mockWorkspace.deleteTask(task.id)
+  const after = await mockWorkspace.exportWorkspace()
+  assert.equal(after.tasks.length, before.tasks.length - 1)
+  assert.ok(!after.tasks.some((item) => item.id === task.id))
+  assert.ok(!after.sessions.some((item) => item.taskId === task.id))
+})

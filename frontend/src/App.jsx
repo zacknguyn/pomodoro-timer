@@ -5,10 +5,9 @@ import { authApi } from './lib/authApi'
 import { resolveInitialView, WORKSPACE_VIEWS } from './lib/navigation'
 import { hasOpenedWorkspace, markWorkspaceOpened, readProfile, readWorkProtocol, writeWorkProtocol } from './lib/preferences'
 
+import { LOCAL_PREVIEW } from './lib/runtime'
+
 const PUBLIC_VIEWS = ['landing', 'login', 'register', 'recover']
-// Phase 1 UI-only: auth gate disabled by user request. Re-enable in Phase 2 (DB).
-// To re-enable: restore `import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true'`.
-const DEV_BYPASS_AUTH = true
 const LOCAL_PREVIEW_USER = { id: '00000000-0000-4000-8000-000000000001', email: 'Local preview', role: 'user' }
 
 const VIEW_LOADERS = {
@@ -37,19 +36,16 @@ function AuthLoading() {
 }
 
 export default function App() {
-  const [workspaceOpened, setWorkspaceOpened] = useState(() => hasOpenedWorkspace(localStorage))
   const [view, setView] = useState(() => {
     const requested = requestedView()
-    if (DEV_BYPASS_AUTH) return requested || 'work'
-    return PUBLIC_VIEWS.includes(requested)
-      ? requested
-      : resolveInitialView({ requested, workspaceOpened: hasOpenedWorkspace(localStorage) })
+    if (LOCAL_PREVIEW) return requested || 'work'
+    return requested || resolveInitialView({ requested, workspaceOpened: hasOpenedWorkspace(localStorage) })
   })
   const [preferences, setPreferences] = useState(() => readWorkProtocol(localStorage))
   const [systemDark, setSystemDark] = useState(() => matchMedia('(prefers-color-scheme: dark)').matches)
   const theme = preferences.brightness === 'system' ? (systemDark ? 'dark' : 'light') : preferences.brightness
   const [profile, setProfile] = useState(() => readProfile(localStorage))
-  const [auth, setAuth] = useState(() => DEV_BYPASS_AUTH
+  const [auth, setAuth] = useState(() => LOCAL_PREVIEW
     ? { status: 'ready', user: LOCAL_PREVIEW_USER }
     : { status: 'loading', user: null })
 
@@ -66,23 +62,25 @@ export default function App() {
   }, [])
   function savePreferences(next) {
     const saved = { ...preferences, ...next }
-    writeWorkProtocol(localStorage, saved)
+    writeWorkProtocol(localStorage, saved, LOCAL_PREVIEW ? null : auth.user?.id)
     setPreferences(saved)
   }
 
   useEffect(() => {
-    if (DEV_BYPASS_AUTH) return undefined
+    if (LOCAL_PREVIEW) return undefined
     let active = true
     authApi.me()
-      .then(({ user }) => { if (active) setAuth({ status: 'ready', user }) })
-      .catch(() => { if (active) setAuth({ status: 'ready', user: null }) })
-    const expire = () => setAuth({ status: 'ready', user: null })
+      .then(({ user }) => { if (active) { setProfile(readProfile(localStorage, user.id, user.email.split('@')[0])); setPreferences(readWorkProtocol(localStorage, user.id)); setAuth({ status: 'ready', user }) } })
+      .catch((error) => { if (active) setAuth({ status: error.status === 401 ? 'ready' : 'error', user: null, error: error.message }) })
+    const expire = () => { setAuth({ status: 'ready', user: null }); setView('login') }
     window.addEventListener('pomogit:auth-expired', expire)
     return () => { active = false; window.removeEventListener('pomogit:auth-expired', expire) }
   }, [])
 
   const canAccessAdmin = ['admin', 'superadmin'].includes(auth.user?.role)
-  const currentView = view === 'admin' && !canAccessAdmin ? 'work' : view
+  const currentView = !auth.user && auth.status === 'ready' && !PUBLIC_VIEWS.includes(view)
+    ? 'login'
+    : view === 'admin' && !canAccessAdmin ? 'work' : view
 
   useEffect(() => {
     if (window.location.hash !== `#${currentView}`) {
@@ -105,20 +103,28 @@ export default function App() {
   }
 
   function authenticated(user) {
+    setProfile(readProfile(localStorage, user.id, user.email.split('@')[0]))
+    setPreferences(readWorkProtocol(localStorage, user.id))
     markWorkspaceOpened(localStorage)
-    setWorkspaceOpened(true)
     setAuth({ status: 'ready', user })
-    navigate(['admin', 'superadmin'].includes(user.role) && view === 'admin' ? 'admin' : 'work')
+    navigate(WORKSPACE_VIEWS.includes(view) && (view !== 'admin' || ['admin', 'superadmin'].includes(user.role)) ? view : 'work')
   }
 
+  async function logout() {
+    if (!LOCAL_PREVIEW) await authApi.logout()
+    setAuth({ status: 'ready', user: LOCAL_PREVIEW ? LOCAL_PREVIEW_USER : null })
+    navigate('login')
+  }
+
+  if (auth.status === 'error') return <main className="auth-loading"><Brand /><p role="alert">{auth.error}</p><button onClick={() => window.location.reload()}>Try again</button></main>
   if (auth.status === 'loading') return <AuthLoading />
   const publicView = PUBLIC_VIEWS.includes(currentView)
-  const openWorkspace = () => { markWorkspaceOpened(localStorage); setWorkspaceOpened(true); navigate('work') }
+  const openWorkspace = () => { markWorkspaceOpened(localStorage); navigate('work') }
   return <>
-    {(publicView || !auth.user) && (currentView === 'landing' || (!auth.user && !workspaceOpened)
-      ? <LandingScreen onNavigate={navigate} onOpen={() => navigate('register')} onDemo={openWorkspace} palette={preferences.palette} theme={theme} reducedMotion={preferences.motion === 'reduced'} />
-      : <AuthScreen key={currentView} initialMode={currentView === 'register' ? 'register' : currentView === 'recover' ? 'recover' : 'login'} onAuthenticated={DEV_BYPASS_AUTH ? openWorkspace : authenticated} onNavigate={navigate} onBack={() => navigate('landing')} />)}
-    {auth.user && <div hidden={publicView}><Suspense fallback={<main className="auth-loading">Loading workspace…</main>}><Workbench view={publicView ? 'work' : currentView} onNavigate={navigate} profile={profile} onProfile={setProfile} preferences={preferences} onPreferences={savePreferences} onExit={() => navigate('login')}
+    {(publicView || !auth.user) && (currentView === 'landing'
+      ? <LandingScreen onNavigate={navigate} onOpen={() => navigate('register')} onDemo={LOCAL_PREVIEW || auth.user ? openWorkspace : () => navigate('register')} preview={LOCAL_PREVIEW} palette={preferences.palette} theme={theme} reducedMotion={preferences.motion === 'reduced'} />
+      : <AuthScreen key={currentView} preview={LOCAL_PREVIEW} initialMode={currentView === 'register' ? 'register' : currentView === 'recover' ? 'recover' : 'login'} onAuthenticated={LOCAL_PREVIEW ? openWorkspace : authenticated} onNavigate={navigate} onBack={() => navigate('landing')} />)}
+    {auth.user && <div hidden={publicView}><Suspense fallback={<main className="auth-loading">Loading workspace…</main>}><Workbench key={auth.user.id} accountId={LOCAL_PREVIEW ? null : auth.user.id} view={publicView ? 'work' : currentView} onNavigate={navigate} profile={profile} onProfile={setProfile} preferences={preferences} onPreferences={savePreferences} onExit={logout}
       admin={canAccessAdmin ? <Suspense fallback={<p>Loading admin…</p>}><AdminView currentUser={auth.user} /></Suspense> : null} /></Suspense></div>}
   </>
 }

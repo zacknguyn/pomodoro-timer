@@ -1,12 +1,13 @@
 -- Pomogit PostgreSQL schema
--- Run once against your RDS instance: psql $DATABASE_URL -f schema.sql
+-- Initialize a new PostgreSQL database with npm run db:init.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS users (
   id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   email       TEXT UNIQUE NOT NULL,
-  password    TEXT NOT NULL,
+  password    TEXT,
+  github_id   TEXT UNIQUE,
   display_name TEXT,
   bio         TEXT,
   avatar_style TEXT NOT NULL DEFAULT 'thumbs',
@@ -29,15 +30,24 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 CREATE INDEX IF NOT EXISTS auth_sessions_user_id_idx ON auth_sessions(user_id);
 CREATE INDEX IF NOT EXISTS auth_sessions_expiry_idx ON auth_sessions(expires_at);
 
+CREATE TABLE IF NOT EXISTS github_login_requests (
+  state_hash CHAR(64) PRIMARY KEY,
+  verifier TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
 -- Account-owned workspace model.
 CREATE TABLE IF NOT EXISTS tasks (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title         TEXT NOT NULL CHECK (length(btrim(title)) > 0),
   status        TEXT NOT NULL DEFAULT 'inbox'
-                  CHECK (status IN ('inbox', 'ready', 'done')),
+                  CHECK (status IN ('inbox', 'ready', 'progress', 'done')),
   ready_order   INTEGER NOT NULL DEFAULT 0 CHECK (ready_order >= 0),
   reference_url TEXT,
+  project       TEXT NOT NULL DEFAULT '',
+  next_step     TEXT NOT NULL DEFAULT '',
+  notes         JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(notes) = 'array'),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -98,3 +108,13 @@ CREATE INDEX IF NOT EXISTS admin_audit_logs_created_at_idx
 
 CREATE INDEX IF NOT EXISTS checkpoints_task_created_idx
   ON checkpoints(task_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS github_projects (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  github_id TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  UNIQUE(user_id, github_id)
+);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS github_issue_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS tasks_github_issue_unique ON tasks(user_id, github_issue_id);

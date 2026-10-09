@@ -330,7 +330,8 @@
   .wb-task-chooser > summary > span { display: flex; align-items: center; gap: 12px; font-size: .75rem; color: var(--wb-muted); }
   .wb-task-chooser .wb-task-list { overscroll-behavior-y: contain; display: grid; padding: 8px; max-height: min(45dvh,320px); }
   .wb-task-row > p, .wb-list-heading { display: none; }
-  .wb-detail > header { padding: 20px 16px; gap: 12px; }
+  .wb-detail > header { padding: 20px 16px; gap: 12px; flex-direction: column; align-items: stretch; }
+  .wb-detail > header .wb-task-actions { align-self: flex-end; }
   .wb-detail h2 { font-size: 1.375rem; }
   .wb-detail-body { padding: 20px 16px; }
   .wb-actions > .wb-primary { flex: 1 1 100%; }
@@ -451,3 +452,46 @@
   .wb-board[data-status]:not([data-status=""]) .wb-lane[data-match=false] { display: none; }
   .wb-drag-guide { display: none; }
 }
+
+.premium-app { --wb-danger: oklch(45% .14 25); }
+:root[data-theme="dark"] .premium-app { --wb-danger: oklch(78% .13 25); }
+.premium-app .wb-danger { color: var(--wb-danger); }
+.premium-app .wb-danger-solid { background: oklch(48% .16 25); border-color: var(--wb-danger); color: oklch(98% .004 25); }
+.premium-app .wb-danger-solid:hover { background: oklch(43% .16 25); }
+.wb-task-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.premium-app .wb-task-actions button { min-width: 44px; min-height: 44px; }
+.wb-connect-github { align-self: flex-start; margin-bottom: 12px; }
+.wb-github-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.wb-github-list { display: grid; gap: 8px; margin: 16px 0; }
+.premium-app .wb-github-list > button { text-align: left; justify-content: flex-start; padding: 14px; }
+.wb-github-list > button > span { flex: 1; min-width: 0; }
+.wb-github-list small { display: block; color: var(--wb-muted); margin-top: 6px; line-height: 1.5; }
+.wb-modal .wb-github-issue { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--wb-line); border-radius: 10px; padding: 14px; cursor: pointer; }
+.wb-github-issue:has(input:checked) { background: var(--wb-wash); border-color: var(--wb-accent); }
+.wb-github-issue:has(input:disabled) { cursor: default; }
+.wb-github-issue input { flex: none; width: 20px; height: 20px; margin-top: 2px; }
+.wb-github-issue > span { min-width: 0; }
+.wb-repo-intro ol { display: flex; gap: 24px; list-style: none; padding: 0; margin: 0 0 16px; }
+.wb-repo-intro li { display: flex; align-items: center; gap: 8px; color: var(--wb-muted); font-size: .8125rem; }
+.wb-repo-intro li[aria-current] { color: var(--wb-ink); font-weight: 600; }
+.wb-repo-intro li > span { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--wb-line); border-radius: 50%; }
+.wb-repo-intro li[aria-current] > span { background: var(--wb-wash); border-color: var(--wb-accent); }
+.wb-repo-intro p { font-size: .875rem; line-height: 1.6; color: var(--wb-muted); }
+.wb-repo-picker { display: grid; gap: 28px; }
+.wb-repo-url { padding: 20px; background: var(--wb-wash); border: 1px solid var(--wb-line); border-radius: 12px; }
+.wb-repo-url form { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 12px; margin-top: 16px; }
+.wb-repo-url form > button { margin-bottom: 0; }
+.wb-repo-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.wb-repo-section-heading > span { font-size: .75rem; color: var(--wb-muted); }
+.wb-modal .wb-repo-search { display: flex; align-items: center; gap: 10px; }
+.wb-repo-search input { min-width: 0; flex: 1; }
+.wb-repo-context { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--wb-line); border-radius: 12px; background: var(--wb-wash); }
+.wb-repo-context .wb-github-heading { margin: 0; min-width: 0; }
+.wb-repo-context small, .wb-repo-context strong { display: block; }
+.wb-repo-context small { margin-bottom: 5px; }
+@media(max-width:760px) { .wb-repo-url form { grid-template-columns: minmax(0,1fr); } .wb-repo-url { padding: 16px; } .wb-repo-context { align-items: stretch; flex-direction: column; } .wb-repo-context > button { align-self: flex-start; } }
+.wb-repo-project { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--wb-line); border-radius: 10px; }
+.wb-repo-project > div { flex: 1; min-width: 0; }
+.wb-repo-project small { display: block; margin-top: 5px; color: var(--wb-muted); }
+.premium-app .wb-repo-project > button { min-width: 44px; min-height: 44px; flex-shrink: 0; }
+@media(max-width:480px) { .wb-repo-project { gap: 8px; padding: 12px; } .wb-repo-project > svg { display: none; } .wb-repo-section-heading { flex-wrap: wrap; } }

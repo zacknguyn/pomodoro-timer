@@ -8,12 +8,18 @@ const file = command === 'init'
   ? resolve('schema.sql')
   : command === 'migrate'
     ? resolve('migrations/001_secure_accounts.sql')
+    : command === 'workspace'
+      ? resolve('migrations/003_workspace_details.sql')
+    : command === 'github'
+      ? resolve('migrations/004_github_login.sql')
+    : command === 'projects'
+      ? resolve('migrations/005_github_projects.sql')
     : command === 'cleanup-legacy'
       ? resolve('migrations/002_remove_legacy_product.sql')
     : null;
 
 if (!file) {
-  console.error('Usage: node scripts/database.js <init|migrate|cleanup-legacy>');
+  console.error('Usage: node scripts/database.js <init|migrate|workspace|github|projects|cleanup-legacy>');
   process.exitCode = 2;
 } else {
   try {

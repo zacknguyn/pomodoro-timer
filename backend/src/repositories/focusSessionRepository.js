@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import pool from '../lib/db.js';
 import { ApiError, sessionToApi } from '../lib/workspaceApi.js';
 
@@ -45,6 +46,10 @@ class FocusSessionRepository {
            status, deadline_at, remaining_seconds
          ) VALUES ($1, $2, $3, 0, 'active', $4, $3) RETURNING *`,
         [userId, taskId, durationPlannedSeconds, deadline]
+      );
+      await client.query(
+        "UPDATE tasks SET status = 'progress', notes = notes || $1::jsonb WHERE user_id = $2 AND id = $3",
+        [JSON.stringify([{ id: randomUUID(), text: 'Focus started · moved to In progress.', createdAt: new Date().toISOString(), kind: 'change' }]), userId, taskId]
       );
       await client.query('COMMIT');
       return sessionToApi(rows[0]);

@@ -58,6 +58,9 @@ export function taskToApi(row) {
     status: row.status,
     order: row.ready_order,
     referenceUrl: row.reference_url,
+    project: row.project || '',
+    nextStep: row.next_step || '',
+    notes: row.notes || [],
     createdAt: row.created_at,
   } : null;
 }

@@ -1,8 +1,4 @@
-import { mockWorkspace } from './mockWorkspace'
-
-// Phase 1 UI-only: all API calls served from local mock. No auth, no backend.
-// To re-enable backend in Phase 2: set USE_MOCK to false.
-const USE_MOCK = true
+import { LOCAL_PREVIEW } from './runtime'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 const REQUEST_TIMEOUT_MS = 12_000
@@ -48,7 +44,7 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json()
 }
 
-export const workApi = USE_MOCK ? mockWorkspace : {
+const api = {
   exportWorkspace: () => request('/export'),
   listReviewEntries: () => request('/checkpoints'),
   listTasks: () => request('/tasks'),
@@ -78,3 +74,17 @@ export const workApi = USE_MOCK ? mockWorkspace : {
   }),
   getTaskCheckpoints: (taskId) => request(`/tasks/${taskId}/checkpoints`),
 }
+
+export const githubApi = {
+  removeProject: (name) => request('/tasks/projects', { method: 'DELETE', body: JSON.stringify({ name }) }),
+  projects: () => request('/github/projects'),
+  repositories: (page = 1) => request(`/github/repositories?page=${page}`),
+  connect: (repository) => request('/github/projects', { method: 'POST', body: JSON.stringify({ repository }) }),
+  issues: (id, page = 1) => request(`/github/projects/${id}/issues?page=${page}`),
+  importIssues: (id, numbers) => request(`/github/projects/${id}/import`, { method: 'POST', body: JSON.stringify({ numbers }) }),
+}
+
+// Load sample data only when the development preview was explicitly requested.
+export const workApi = LOCAL_PREVIEW
+  ? Object.fromEntries(Object.keys(api).map((name) => [name, async (...args) => (await import('./mockWorkspace')).mockWorkspace[name](...args)]))
+  : api

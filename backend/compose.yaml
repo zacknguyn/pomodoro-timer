@@ -1,0 +1,19 @@
+name: pomogit-local
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pomogit
+      POSTGRES_DB: pomogit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pomogit-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pomogit -d pomogit"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+volumes:
+  pomogit-data:

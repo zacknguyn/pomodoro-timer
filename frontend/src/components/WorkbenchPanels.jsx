@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, CircleCheck, CirclePlus, Clock, Download, PanelsTopLeft, Sun, Moon, Monitor, Inbox, Maximize, Minus, Pause, Pencil, Play, Square, X } from 'lucide-react'
+import { ArrowRight, Check, CircleCheck, CirclePlus, Clock, Download, PanelsTopLeft, Sun, Moon, Monitor, Inbox, Maximize, Minus, Pause, Pencil, Play, Square, Trash2, X } from 'lucide-react'
+import { LOCAL_PREVIEW } from '../lib/runtime'
 import { DEFAULT_WORK_PROTOCOL } from '../lib/preferences'
 import { WORKBENCH_STATUSES, readableDate, safeReference } from '../lib/workbenchView'
 import { DitherAvatar } from './dither-kit/DitherAvatar'
@@ -48,7 +49,7 @@ export function TaskEditor({ task, projects, draft, onDraft, onSave, onClose, bu
     <form id="wb-edit-task" className="wb-form" onSubmit={save} onInput={(event) => { dirty.current.add(event.target.name); onDraft({ ...fields(event.currentTarget), dirty: [...dirty.current] }) }}>
       <label>Title<input name="title" required defaultValue={initial.title} /></label>
       <label>Next step · optional<textarea name="nextStep" defaultValue={initial.nextStep || ''} /></label>
-      <label>Project · optional<input name="project" list="wb-projects" defaultValue={initial.project || ''} /><datalist id="wb-projects">{projects.map((project) => <option key={project} value={project} />)}</datalist></label>
+      <label>Project name · optional<input name="project" list="wb-projects" defaultValue={initial.project || ''} /><datalist id="wb-projects">{projects.map((project) => <option key={project} value={project} />)}</datalist></label>
       <label>Reference · optional<input name="referenceUrl" type="url" defaultValue={initial.referenceUrl || ''} /></label>
       <label>Status<select name="status" defaultValue={initial.status}>{WORKBENCH_STATUSES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
       <section><h3>Saved notes</h3><NoteHistory notes={task.notes} /></section>
@@ -62,12 +63,23 @@ export function NoteHistory({ notes = [] }) {
   const written = notes.filter((note) => note.kind !== 'change')
   return written.length ? <div className="wb-note-history">{written.slice().reverse().map((note) => <article key={note.id}><time>{readableDate(note.createdAt)}</time><p>{note.text}</p></article>)}</div> : <p className="wb-muted">No saved notes yet.</p>
 }
-export function TaskInspection({ task, onClose, onEdit, onWork, busy }) {
-  return <Modal title={task.title} onClose={onClose} footer={<><button onClick={onEdit}><Pencil size={16} />Edit</button><button className="wb-primary" onClick={onWork} disabled={busy}><ArrowRight size={16} />{task.status === 'done' ? 'Reopen in Workspace' : 'Open in Workspace'}</button></>}>
+export function TaskInspection({ task, onClose, onEdit, onWork, onDelete, busy }) {
+  return <Modal title={task.title} onClose={onClose} footer={<><button onClick={onEdit}><Pencil size={16} />Edit</button><button className="wb-primary" onClick={onWork} disabled={busy}><ArrowRight size={16} />{task.status === 'done' ? 'Reopen in Workspace' : 'Open in Workspace'}</button><button className="wb-danger wb-ghost" onClick={onDelete} disabled={busy}><Trash2 size={16} />Delete task</button></>}>
     <div className="wb-meta"><span>{task.project || 'No project'}</span><StatusLabel status={task.status} /></div>
     <section><p className="wb-label">Next step</p><p>{task.nextStep || 'No next step saved.'}</p></section>
     {safeReference(task.referenceUrl) && <a className="wb-button" href={safeReference(task.referenceUrl)} target="_blank" rel="noreferrer">Open reference<ArrowRight size={16} /></a>}
     <section><h3>Saved notes</h3><NoteHistory notes={task.notes} /></section>
+  </Modal>
+}
+export function TaskDeleteDialog({ task, blocked, busy, serverError, onClose, onDelete, onWork }) {
+  const cancel = useRef(null)
+  useEffect(() => { cancel.current?.focus() }, [])
+  return <Modal title="Delete task?" onClose={onClose} footer={<><button onClick={onClose} disabled={busy} ref={cancel}>Cancel</button>{blocked ? <button className="wb-primary" onClick={onWork} disabled={busy}>Go to timer</button> : <button className="wb-danger-solid" onClick={onDelete} disabled={busy}><Trash2 size={16} />{busy ? 'Deleting…' : 'Delete task'}</button>}</>}>
+    <h3>{task.title}</h3>
+    <p>This permanently removes the task, its notes, and its focus history from Pomogit. This cannot be undone.</p>
+    <p className="wb-muted">Linked GitHub issues and pull requests are unaffected.</p>
+    {blocked && <p role="status">Stop this task’s active or paused timer before deleting it.</p>}
+    {serverError && <p className="wb-error" role="alert">{serverError}</p>}
   </Modal>
 }
 export function FloatingFocus({ session, task, selectedTask, duration, panel, onPanel, onStart, onTransition, onSelect, busy, hidden, onHeight }) {
@@ -140,7 +152,7 @@ export function SettingsDialog({ preferences, onSave, onClose, onExport, onProfi
         <SettingChoices name="motion" title="Animation" value={preferences.motion} choices={[[ 'system','Follow system','Respects device preference'],['reduced','Reduce motion','Keep transitions still']]} />
       </section>
       <section><h3><Clock size={18} />Focus timer</h3><p className="wb-muted">Changes apply to your next session.</p><SettingChoices name="focusMinutes" title="Session length" value={preferences.focusMinutes} choices={lengths.map((minutes) => [minutes,`${minutes} min`])} /><label className="wb-switch">Expand when focus starts<input name="expand" type="checkbox" role="switch" defaultChecked={preferences.expand !== false} /></label><p className="wb-muted">Stopping the timer never completes your task.</p></section>
-      <section className="wb-settings-data"><h3><Download size={18} />Your data & profile</h3><p className="wb-muted">Saved in this browser. Nothing is published.</p><div><div><strong>Take your tasks with you</strong><p className="wb-muted">Tasks, links, and notes in one JSON file.</p><button type="button" onClick={onExport}><Download size={16} />Export tasks</button></div><div><strong>Make it personal</strong><p className="wb-muted">Choose your avatar and featured work.</p><button type="button" onClick={onProfile}>Profile preferences<ArrowRight size={16} /></button></div></div></section>
+      <section className="wb-settings-data"><h3><Download size={18} />Your data & profile</h3><p className="wb-muted">{LOCAL_PREVIEW ? 'Saved in this browser. Nothing is published.' : 'Tasks, notes, and focus sessions are saved to your account. Profile and appearance preferences stay in this browser.'}</p><div><div><strong>Take your tasks with you</strong><p className="wb-muted">Tasks, links, and notes in one JSON file.</p><button type="button" onClick={onExport}><Download size={16} />Export tasks</button></div><div><strong>Make it personal</strong><p className="wb-muted">Choose your avatar and featured work.</p><button type="button" onClick={onProfile}>Profile preferences<ArrowRight size={16} /></button></div></div></section>
     </form>
   </Modal>
 }

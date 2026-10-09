@@ -10,14 +10,19 @@ export class AuthApiError extends Error {
 
 async function request(path, options = {}) {
   let response
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 12_000)
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...options,
       credentials: 'include',
+      signal: controller.signal,
       headers: { 'Content-Type': 'application/json', ...options.headers },
     })
-  } catch {
-    throw new AuthApiError('Pomogit could not reach the account service.')
+  } catch (error) {
+    throw new AuthApiError(error.name === 'AbortError' ? 'The account service took too long to respond. Try again.' : 'Pomogit could not reach the account service.')
+  } finally {
+    window.clearTimeout(timeout)
   }
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
@@ -31,6 +36,7 @@ export const authApi = {
   login: (credentials) => request('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
   register: (credentials) => request('/auth/register', { method: 'POST', body: JSON.stringify(credentials) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  github: () => request('/auth/github', { method: 'POST', body: '{}' }),
 }
 
 export const adminApi = {

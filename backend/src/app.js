@@ -6,6 +6,7 @@ import authController from './controllers/authController.js';
 import sessionController from './controllers/sessionController.js';
 import adminController from './controllers/adminController.js';
 import taskController from './controllers/taskController.js';
+import githubController from './controllers/githubController.js';
 import checkpointController from './controllers/checkpointController.js';
 import workspaceExportController from './controllers/workspaceExportController.js';
 import { workspaceErrorHandler } from './lib/workspaceApi.js';
@@ -43,8 +44,11 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use('/api/auth', authLimiter, authController);
+app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+app.post(['/api/auth/login', '/api/auth/register', '/api/auth/github'], authLimiter);
+app.use('/api/auth', authController);
 app.use('/api/tasks', authMiddleware, taskController);
+app.use('/api/github', authMiddleware, githubController);
 app.use('/api/sessions', authMiddleware, sessionController);
 app.use('/api/checkpoints', authMiddleware, checkpointController);
 app.use('/api/export', authMiddleware, workspaceExportController);

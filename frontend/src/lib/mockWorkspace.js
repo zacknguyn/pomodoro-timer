@@ -135,9 +135,10 @@ export const mockWorkspace = {
   },
 
   async deleteTask(taskId) {
+    if (state.session?.taskId === taskId) throw new Error('Stop the timer before deleting this task.')
     state.tasks = state.tasks.filter((task) => task.id !== taskId)
     state.checkpoints = state.checkpoints.filter((checkpoint) => checkpoint.taskId !== taskId)
-    if (state.session?.taskId === taskId) state.session = null
+    state.sessions = (state.sessions || []).filter((session) => session.taskId !== taskId)
     persist(state)
     return delay(null)
   },

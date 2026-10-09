@@ -23,7 +23,7 @@ async function useLocalPreviewIdentity(req) {
   req.user = { userId: LOCAL_USER.id, ...LOCAL_USER };
 }
 
-function readCookie(header, name) {
+export function readCookie(header, name) {
   if (!header) return null;
   for (const pair of header.split(';')) {
     const separator = pair.indexOf('=');

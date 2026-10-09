@@ -21,6 +21,7 @@ export class AuthService {
   }
 
   async verifyPassword(storedHash, password) {
+    if (!storedHash) return false;
     if (storedHash.startsWith('$argon2')) return argon2.verify(storedHash, password);
     return bcrypt.compare(password, storedHash);
   }
