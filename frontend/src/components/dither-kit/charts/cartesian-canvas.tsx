@@ -30,7 +30,7 @@ type LoopArgs = {
  * surface, paints the dither fill (with the entrance reveal), then layers the
  * crosshair marker and winking stars on top. Lives outside the component so the
  * component stays small and this hot closure isn't re-created on every render.
- * Returns a cleanup that cancels the loop.
+ * Sleeps offscreen/while hidden; reduced motion wakes only for changed inputs.
  */
 function startCartesianLoop({
   canvas,
@@ -40,7 +40,7 @@ function startCartesianLoop({
   state,
   targets,
   stars,
-}: LoopArgs): (() => void) | undefined {
+}: LoopArgs): { wake: () => void; stop: () => void } | undefined {
   const c = canvas.getContext("2d")
   if (!c || cols <= 0 || rows <= 0) return undefined
   canvas.width = cols
@@ -59,9 +59,6 @@ function startCartesianLoop({
     bloomCanvas.height = rows
   }
 
-  const reduce = prefersReducedMotion()
-  const EASE = reduce ? 1 : 0.18
-  const animate = state.current.animate && !reduce
   const duration = state.current.animationDuration
   const current: Record<string, Surface> = {}
 
@@ -108,25 +105,27 @@ function startCartesianLoop({
   let animStart = 0
   let lastProg = -1
   let lastRevision = state.current.revision
-  let entranceReported = !animate
+  let entranceReported = !state.current.animate || prefersReducedMotion()
   let intensity = 0
   let needsFill = true
   let lastPaintSig = ""
   let lastSelected: string | null | undefined = Symbol() as never
+  let lastMarker: number | null | undefined
+  let inView = false
+  let stopped = false
+
+  const wake = () => {
+    if (!stopped && inView && !document.hidden && !raf) raf = requestAnimationFrame(draw)
+  }
 
   const draw = (now: number) => {
-    raf = requestAnimationFrame(draw)
+    raf = 0
+    if (!inView || document.hidden) return
     const s = state.current
     if (!s.ready) return
-    // Keep the bloom layer in sync with the crisp canvas while it's active.
-    if (bloomCtx) {
-      const on =
-        s.bloom !== "off" && (!s.bloomOnHover || s.isMouseInChart || s.hovered)
-      if (on) {
-        bloomCtx.clearRect(0, 0, cols, rows)
-        bloomCtx.drawImage(canvas, 0, 0)
-      }
-    }
+    const reduce = prefersReducedMotion()
+    const ease = reduce ? 1 : 0.18
+    const animate = s.animate && !reduce
     const tgt = targets.current
     if (s.revision !== lastRevision) {
       lastRevision = s.revision
@@ -157,8 +156,8 @@ function startCartesianLoop({
         const dt = t.top[x] - cur.top[x]
         const df = t.floor[x] - cur.floor[x]
         if (Math.abs(dt) > 0.01 || Math.abs(df) > 0.01) {
-          cur.top[x] += dt * EASE
-          cur.floor[x] += df * EASE
+          cur.top[x] += dt * ease
+          cur.floor[x] += df * ease
           moving = true
         } else {
           cur.top[x] = t.top[x]
@@ -182,14 +181,15 @@ function startCartesianLoop({
     const itTarget = s.isMouseInChart || s.hovered ? 1 : 0
     let settling = false
     if (Math.abs(intensity - itTarget) > 0.001) {
-      intensity += (itTarget - intensity) * 0.16
-      settling = true
+      intensity += (itTarget - intensity) * (reduce ? 1 : 0.16)
+      settling = !reduce
       needsFill = true
     } else intensity = itTarget
 
     // Live hover wins; the controlled markerIndex (e.g. a committed point)
     // is the fallback shown when nothing is hovered.
     const marker = s.hoverIndex != null ? s.hoverIndex : s.markerIndex
+    const markerChanged = marker !== lastMarker
     const winkDue = !reduce && now - last >= 100
     // Repaint when a tweak-driven paint input changes (variant, stacking) so
     // the panel updates the fill live — without resetting the entrance reveal.
@@ -201,17 +201,21 @@ function startCartesianLoop({
       lastPaintSig = paintSig
       needsFill = true
     }
+    // Keep normal-mode sparkles, but stop scheduling once reduced motion settles.
+    if (!reduce || moving || settling || prog < 1) wake()
     if (
       !(
+        needsFill ||
         moving ||
         settling ||
         winkDue ||
-        marker != null ||
+        markerChanged ||
         progChanged ||
         sigChanged
       )
     )
       return
+    lastMarker = marker
     if (progChanged) {
       lastProg = prog
       needsFill = true
@@ -280,10 +284,36 @@ function startCartesianLoop({
         c.fillRect(sx, sy + 1, 1, 1)
       }
     }
+    // Copy the final frame, including the marker, even when no next frame runs.
+    if (bloomCtx) {
+      bloomCtx.clearRect(0, 0, cols, rows)
+      bloomCtx.drawImage(canvas, 0, 0)
+    }
   }
 
-  raf = requestAnimationFrame(draw)
-  return () => cancelAnimationFrame(raf)
+  const visibilityChanged = () => {
+    if (document.hidden || !inView) { cancelAnimationFrame(raf); raf = 0 }
+    else wake()
+  }
+  const observer = new IntersectionObserver(([entry]) => {
+    inView = entry.isIntersecting
+    visibilityChanged()
+  })
+  observer.observe(canvas)
+  document.addEventListener("visibilitychange", visibilityChanged)
+  const media = matchMedia("(prefers-reduced-motion: reduce)")
+  const motionChanged = () => { needsFill = true; wake() }
+  media.addEventListener("change", motionChanged)
+  const motionObserver = new MutationObserver(motionChanged)
+  motionObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-motion"] })
+  return { wake, stop: () => {
+    stopped = true
+    cancelAnimationFrame(raf)
+    observer.disconnect()
+    motionObserver.disconnect()
+    document.removeEventListener("visibilitychange", visibilityChanged)
+    media.removeEventListener("change", motionChanged)
+  } }
 }
 
 /**
@@ -351,16 +381,18 @@ export function CartesianCanvas() {
   const stateRef = useRef(ctx)
   const targetsRef = useRef(targets)
   const starsRef = useRef(stars)
+  const loopRef = useRef<ReturnType<typeof startCartesianLoop>>(undefined)
   useEffect(() => {
     stateRef.current = ctx
     targetsRef.current = targets
     starsRef.current = stars
+    loopRef.current?.wake()
   })
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    return startCartesianLoop({
+    const loop = startCartesianLoop({
       canvas,
       bloomCanvas: bloomRef.current,
       cols,
@@ -369,6 +401,8 @@ export function CartesianCanvas() {
       targets: targetsRef,
       stars: starsRef,
     })
+    loopRef.current = loop
+    return () => { loop?.stop(); loopRef.current = undefined }
   }, [cols, rows])
 
   const bloomActive = ctx.bloomOnHover

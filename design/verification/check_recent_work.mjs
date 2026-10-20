@@ -1,8 +1,7 @@
 // Account-mode dashboard with every API intercepted; never uses a live account.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5191'
 const output = '/tmp/pomogit-recent-work'; await mkdir(output, { recursive: true })
 const browser = await chromium.launch(), checks = []
@@ -42,8 +41,8 @@ for (const width of (process.env.POMOGIT_DASHBOARD_WIDTHS || '1440,1024,768,375'
    throw new Error(`Unexpected mutation ${path}`)
   }
   if (path === '/api/auth/me' && !authenticated) return route.fulfill({ status: 401, json: { error: 'Not signed in' } })
-  if (path === '/api/export' && fail) return route.fulfill({ status: 503, json: { error: 'Fixture history unavailable' } })
-  const data = { '/api/auth/me': { user: { id: 'dashboard-fixture', email: 'fixture@test.invalid', role: 'user' } }, '/api/tasks': empty ? [] : noHistory ? tasks.map(task => ({ ...task, notes: [] })) : tasks, '/api/checkpoints': [], '/api/sessions/active': active, '/api/export': { focusSessions: empty || noHistory ? [] : sessions }, '/api/github/projects': [] }
+  if (path === '/api/sessions' && fail) return route.fulfill({ status: 503, json: { error: 'Fixture history unavailable' } })
+  const data = { '/api/auth/me': { user: { id: 'dashboard-fixture', email: 'fixture@test.invalid', role: 'user' } }, '/api/tasks': empty ? [] : noHistory ? tasks.map(task => ({ ...task, notes: [] })) : tasks, '/api/checkpoints': [], '/api/sessions/active': active, '/api/sessions': empty || noHistory ? [] : sessions, '/api/export': { focusSessions: empty || noHistory ? [] : sessions }, '/api/github/projects': [] }
   assert(Object.hasOwn(data, path), `Unexpected API request ${path}`); await route.fulfill({ json: data[path] })
  })
  const check = (name, value) => { assert(value, `${width}/${theme}/${navigation}: ${name}`); checks.push({ width, theme, navigation, name }) }

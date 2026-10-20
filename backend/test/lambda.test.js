@@ -16,7 +16,7 @@ test('Lambda serves the full secured app and preserves API errors and cookie hea
     isBase64Encoded: false,
   }, { awsRequestId: 'local-test', getRemainingTimeInMillis: () => 30_000 });
   assert.equal((await invoke('/health')).statusCode, 200);
-  for (const path of ['/api/tasks', '/api/sessions/active', '/api/checkpoints', '/api/export', '/api/github/projects', '/api/admin/users']) {
+  for (const path of ['/api/tasks', '/api/sessions', '/api/sessions/active', '/api/checkpoints', '/api/export', '/api/github/projects', '/api/admin/users']) {
     assert.equal((await invoke(path)).statusCode, 401, path);
   }
   assert.equal((await invoke('/api/auth/logout', 'POST')).statusCode, 403);

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {mkdir,writeFile} from 'node:fs/promises'
-const {chromium}=createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE||'playwright')
+import { chromium } from './browser.mjs'
 const output=process.env.POMOGIT_PROFILE_OUTPUT||'/tmp/pomogit-profile-integration'
 await mkdir(output,{recursive:true})
 const browser=await chromium.launch(),checks=[]
@@ -34,11 +34,11 @@ try{
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname
    if(route.request().method()!=='GET'){mutations.push(path);return route.abort()}
-   if(delay&&path==='/api/export')await new Promise(resolve=>setTimeout(resolve,delay))
-   if(fail&&path==='/api/export')return route.fulfill({status:503,json:{error:'Fixture history unavailable'}})
+   if(delay&&path==='/api/sessions')await new Promise(resolve=>setTimeout(resolve,delay))
+   if(fail&&path==='/api/sessions')return route.fulfill({status:503,json:{error:'Fixture history unavailable'}})
    const data={
     '/api/auth/me':{user:{id:'profile-fixture',email:'fixture@test.invalid',role:'user'}},'/api/tasks':empty?[]:tasks,'/api/checkpoints':[],
-    '/api/sessions/active':null,'/api/export':{tasks:empty?[]:tasks,focusSessions:empty?[]:sessions,checkpoints:[]},'/api/github/projects':[],
+    '/api/sessions/active':null,'/api/sessions':empty?[]:sessions,'/api/export':{tasks:empty?[]:tasks,focusSessions:empty?[]:sessions,checkpoints:[]},'/api/github/projects':[],
    }
    assert(Object.hasOwn(data,path),`Unexpected request ${path}`);await route.fulfill({json:data[path]})
   })

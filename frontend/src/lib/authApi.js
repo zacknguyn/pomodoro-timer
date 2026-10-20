@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+import { requestJson } from './http.js'
 
 export class AuthApiError extends Error {
   constructor(message, status = 0) {
@@ -8,27 +8,12 @@ export class AuthApiError extends Error {
   }
 }
 
-async function request(path, options = {}) {
-  let response
-  const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 12_000)
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      credentials: 'include',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', ...options.headers },
-    })
-  } catch (error) {
-    throw new AuthApiError(error.name === 'AbortError' ? 'The account service took too long to respond. Try again.' : 'Pomogit could not reach the account service.')
-  } finally {
-    window.clearTimeout(timeout)
-  }
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null)
-    throw new AuthApiError(payload?.error || 'The request could not be completed.', response.status)
-  }
-  return response.status === 204 ? null : response.json()
+function request(path, options) {
+  return requestJson(path, options, (kind, status = 0, message) => new AuthApiError(message || {
+    timeout: 'The account service took too long to respond. Try again.',
+    network: 'Pomogit could not reach the account service.',
+    response: 'The request could not be completed.',
+  }[kind], status))
 }
 
 export const authApi = {

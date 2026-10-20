@@ -1,8 +1,7 @@
 // React account-mode checks. Every API request is intercepted; no account data is accessed.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const output = process.env.POMOGIT_PROJECTS_OUTPUT || '/tmp/pomogit-projects-integration'
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch(), checks = []
@@ -27,7 +26,7 @@ try {
         const responses = {
           '/api/auth/me': { user: { id: 'projects-fixture', email: 'fixture@test.invalid', role: 'user' } },
           '/api/tasks': tasks, '/api/checkpoints': [], '/api/sessions/active': null,
-          '/api/export': { tasks, focusSessions: [], checkpoints: [] },
+          '/api/sessions': [], '/api/export': { tasks, focusSessions: [], checkpoints: [] },
           '/api/github/projects': projects,
           '/api/github/repositories': { repositories: [], needsGithub: false, hasMore: false },
         }

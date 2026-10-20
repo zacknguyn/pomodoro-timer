@@ -49,10 +49,9 @@ Post-publication checks:
   themes at desktop/phone widths, with every account API request intercepted.
   These checks did not access or mutate real account data.
 
-Manual confirmation of GitHub login returning Home and existing Board tasks
-loading is pending for this release. The user has been asked to verify in their
-own browser. Do not treat fixture checks or the earlier launch confirmation as
-proof of this release's signed-in workflow.
+After publication, the user confirmed in their own browser that GitHub login
+returns Home and existing Board tasks load. This is user-reported manual
+verification for this release; automated checks did not access their account.
 
 Local evidence: `/tmp/pomogit-public-release/` and
 `/tmp/pomogit-floating-navigation-live-fixtures/`. Backups and rollback metadata

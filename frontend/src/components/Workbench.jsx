@@ -9,6 +9,7 @@ import { WORKBENCH_STATUSES, readableDate, safeReference, captureTask } from '..
 import ActivityView from './ActivityView'
 import ProfileView from './ProfileView'
 import { buildActivityEvents } from '../lib/activity'
+import { coalesceRefresh } from '../lib/refresh'
 import GithubRepositoryDialog from './GithubRepositoryDialog'
 import './Workbench.css'
 
@@ -58,21 +59,33 @@ export default function Workbench({ accountId, view, onNavigate, profile, onProf
   const [draggingId, setDraggingId] = useState(null)
   const unreadSince = useRef(Date.now())
   const [readNoteIds, setReadNoteIds] = useState(() => new Set())
+  const projectCache = useRef({ items: null, loadedAt: 0 })
 
-  const refresh = useCallback(async () => {
-    const [nextTasks, nextSession, entries, snapshot, connectedProjects] = await Promise.all([workApi.listTasks(), workApi.getActiveSession(), workApi.listReviewEntries(), workApi.exportWorkspace(), LOCAL_PREVIEW ? Promise.resolve([]) : githubApi.projects()])
+  const refresh = useMemo(() => coalesceRefresh(async () => {
+    const cache = projectCache.current
+    // Account-scoped, memory-only cache. Repository changes invalidate it below.
+    let projects = Promise.resolve(cache.items || [])
+    if (!LOCAL_PREVIEW && (!cache.items || Date.now() - cache.loadedAt >= 60_000)) {
+      projects = githubApi.projects().then(items => { cache.items = items; cache.loadedAt = Date.now(); return items })
+    }
+    const [nextTasks, nextSession, entries, nextSessions, connectedProjects] = await Promise.all([workApi.listTasks(), workApi.getActiveSession(), workApi.listReviewEntries(), workApi.listSessions(), projects])
+    const historyByTask = new Map()
+    for (const entry of entries) {
+      if (!historyByTask.has(entry.task.id)) historyByTask.set(entry.task.id, [])
+      historyByTask.get(entry.task.id).push(entry)
+    }
     const hydrated = nextTasks.map((task) => {
-      const history = entries.filter((entry) => entry.task.id === task.id)
+      const history = historyByTask.get(task.id) || []
       const notes = [...history.filter((entry) => entry.whatChanged).map((entry) => ({ id: entry.id, text: entry.whatChanged, createdAt: entry.createdAt, kind: entry.outcome === 'complete' ? 'completion' : 'note' })), ...(task.notes || [])]
       return { ...task, project: task.project || '', nextStep: task.nextStep ?? history[0]?.nextStep ?? '', notes: [...new Map(notes.map((note) => [note.id, note])).values()].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) }
     })
     setTasks(hydrated)
-    setGithubProjects(connectedProjects)
+    if (cache === projectCache.current) setGithubProjects(connectedProjects)
     setSession(nextSession)
-    setSessions(snapshot.focusSessions || snapshot.sessions || [])
+    setSessions(nextSessions)
     setSelectedId((current) => hydrated.find((task) => task.id === current && task.status !== 'done')?.id || hydrated.find((task) => task.id === nextSession?.taskId && task.status !== 'done')?.id || hydrated.find((task) => task.id === returnTaskId.current && task.status !== 'done')?.id || hydrated.find((task) => task.status !== 'done')?.id || null)
     return hydrated
-  }, [])
+  }), [])
   useEffect(() => {
     let active = true
     refresh().catch((failure) => { if (active) setError(failure.message) }).finally(() => { if (active) setLoading(false) })
@@ -183,7 +196,7 @@ export default function Workbench({ accountId, view, onNavigate, profile, onProf
   const perform = useCallback(async (action, message = '', undoAction = null) => {
     if (busy) return null
     setBusy(true); setError('')
-    try { const result = await action(); await refresh(); if (message) { setNotice(message); setUndo(() => undoAction) } return result ?? true } catch (failure) { await refresh().catch(() => {}); setError(failure.message); return null } finally { setBusy(false) }
+    try { const result = await action(); await refresh({ afterMutation: true }); if (message) { setNotice(message); setUndo(() => undoAction) } return result ?? true } catch (failure) { await refresh({ afterMutation: true }).catch(() => {}); setError(failure.message); return null } finally { setBusy(false) }
   }, [busy, refresh])
   async function capture(event) {
     event.preventDefault()
@@ -393,7 +406,7 @@ export default function Workbench({ accountId, view, onNavigate, profile, onProf
     {dialog?.type === 'logout' && <Modal busy={busy} title="Leave your workspace?" onClose={() => setDialog(null)} footer={<><button disabled={busy} onClick={() => setDialog(null)}>Keep working</button><button className="wb-primary" disabled={busy} onClick={() => void leave()}>Log out</button></>}><p>Your timer and saved work stay available. Sign back in to pick up where you left off.</p></Modal>}
     {dialog?.type === 'settings' && <SettingsDialog preferences={preferences} onClose={() => setDialog(null)} onSave={(next) => { const saved = { ...preferences, ...next }; onPreferences(saved); setDialog(null); setUndo(null); setNotice('Settings saved. Session length applies to the next timer.') }} onExport={exportTasks} onProfile={() => { setDialog(null); navigate('profile') }} />}
     {dialog?.type === 'featured' && <Modal title="Choose featured work" onClose={() => setDialog(null)} footer={<><button onClick={() => setDialog(null)}>Cancel</button><button className="wb-primary" onClick={() => saveProfile({ ...profile, featuredIds: featureDraft, featuredDescriptions: dialog.descriptions, featuredReferences: dialog.references })}>Save featured work</button></>}><p className="wb-muted">Select up to three completed tasks. Private notes are never copied into your public description.</p><p className="wb-muted" role="status">{featureDraft.length} of 3 selected</p>{!completed.length && <p className="wb-muted">No completed tasks yet.</p>}{completed.map((task) => <div className="wb-feature-option" key={task.id}><label className="wb-check"><input type="checkbox" checked={featureDraft.includes(task.id)} disabled={!featureDraft.includes(task.id) && featureDraft.length >= 3} onChange={(event) => setDialog({ ...dialog, ids: event.target.checked ? [...featureDraft, task.id] : featureDraft.filter((id) => id !== task.id) })} />{task.title}</label>{featureDraft.includes(task.id) && <label className="wb-feature-summary">Public description · optional<textarea value={dialog.descriptions?.[task.id] || ''} onChange={(event) => setDialog({ ...dialog, descriptions: { ...dialog.descriptions, [task.id]: event.target.value } })} maxLength={400} placeholder="Describe the outcome you want to share." /></label>}{featureDraft.includes(task.id) && safeReference(task.referenceUrl) && <label className="wb-check wb-feature-reference"><input type="checkbox" checked={Boolean(dialog.references?.[task.id])} onChange={event => setDialog({ ...dialog, references: { ...dialog.references, [task.id]: event.target.checked } })} />Include reference link in visitor preview</label>}{featureDraft.includes(task.id) && <div><button aria-label={`Move ${task.title} earlier`} disabled={featureDraft.indexOf(task.id) === 0} onClick={() => { const ids = [...featureDraft]; const index = ids.indexOf(task.id); [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]]; setDialog({ ...dialog, ids }) }}>↑</button><button aria-label={`Move ${task.title} later`} disabled={featureDraft.indexOf(task.id) === featureDraft.length - 1} onClick={() => { const ids = [...featureDraft]; const index = ids.indexOf(task.id); [ids[index + 1], ids[index]] = [ids[index], ids[index + 1]]; setDialog({ ...dialog, ids }) }}>↓</button></div>}</div>)}</Modal>}
-    {dialog?.type === 'github' && <GithubRepositoryDialog projects={githubProjects} projectNames={projects} tasks={tasks} onViewTasks={(name) => { clearFilters('tasks'); setProject(name, 'tasks'); setDialog(null); navigate('tasks') }} onRemoved={async (name, result) => { setGithubProjects(current => current.filter(item => item.fullName !== name)); setTasks(current => current.map(task => task.project === name ? { ...task, project: '' } : task)); setFilters((current) => Object.fromEntries(Object.entries(current).map(([page, values]) => [page, values.project === name ? { ...values, project: '' } : values]))); setNotice(`Project removed. ${result.tasksKept} tasks kept without a project.`); setUndo(null); await refresh().catch(failure => setError(failure.message)) }} onClose={() => setDialog(null)} onConnected={item => setGithubProjects(current => [...current.filter(existing => existing.id !== item.id), item])} onImported={async (item, result) => { await refresh(); clearFilters('tasks'); setProject(item.fullName, 'tasks'); navigate('tasks'); setNotice(`${result.imported} issues imported into Inbox.${result.skipped ? ` ${result.skipped} already imported.` : ''}`); setUndo(null); setDialog(null) }} />}
+    {dialog?.type === 'github' && <GithubRepositoryDialog projects={githubProjects} projectNames={projects} tasks={tasks} onViewTasks={(name) => { clearFilters('tasks'); setProject(name, 'tasks'); setDialog(null); navigate('tasks') }} onRemoved={async (name, result) => { projectCache.current = { items: null, loadedAt: 0 }; setGithubProjects(current => current.filter(item => item.fullName !== name)); setTasks(current => current.map(task => task.project === name ? { ...task, project: '' } : task)); setFilters((current) => Object.fromEntries(Object.entries(current).map(([page, values]) => [page, values.project === name ? { ...values, project: '' } : values]))); setNotice(`Project removed. ${result.tasksKept} tasks kept without a project.`); setUndo(null); await refresh({ afterMutation: true }).catch(failure => setError(failure.message)) }} onClose={() => setDialog(null)} onConnected={item => { projectCache.current = { items: null, loadedAt: 0 }; setGithubProjects(current => [...current.filter(existing => existing.id !== item.id), item]) }} onImported={async (item, result) => { projectCache.current = { items: null, loadedAt: 0 }; await refresh({ afterMutation: true }); clearFilters('tasks'); setProject(item.fullName, 'tasks'); navigate('tasks'); setNotice(`${result.imported} issues imported into Inbox.${result.skipped ? ` ${result.skipped} already imported.` : ''}`); setUndo(null); setDialog(null) }} />}
     {dialog?.type === 'capture' && <Modal title="New task" busy={busy} onClose={cancelCapture} footer={<><button disabled={busy} onClick={cancelCapture}>Cancel</button><p className="wb-muted">A title or link is enough. Details can wait.</p></>}>{!tasks.length && <p id="wb-first-task-help">Add a title or reference link to begin.</p>}{captureForm}{error && <p className="wb-error" role="alert">{error}</p>}</Modal>}
     {dialog?.type === 'shortcuts' && <Modal title="Keyboard shortcuts" onClose={() => setDialog(null)}><p><kbd>/</kbd> Search tasks</p><p><kbd>N</kbd> Capture a task</p><p><kbd>?</kbd> Show shortcuts</p><p><kbd>Esc</kbd> Close menus and dialogs</p></Modal>}
   </div>

@@ -4,11 +4,10 @@
 // Optional: POMOGIT_APP_URL, POMOGIT_CHROMIUM, POMOGIT_RELEASE_OUTPUT.
 // All browser data and downloaded exports belong to isolated test contexts.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5181'
 const output = process.env.POMOGIT_RELEASE_OUTPUT || '/tmp/pomogit-release-chromium'
 await mkdir(output, { recursive: true })

@@ -1,8 +1,7 @@
 // UI-only browser storage; all API access is blocked.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_PREVIEW_URL || 'http://127.0.0.1:5192'
 const output = '/tmp/pomogit-board-handoff'
 await mkdir(output, { recursive: true })

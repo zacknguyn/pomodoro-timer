@@ -32,6 +32,7 @@ test('accounts persist the full workspace flow and isolate owners', { skip: !pro
   }
   try {
     assert.equal((await call('/tasks')).status, 401);
+    assert.equal((await call('/sessions')).status, 401);
     assert.equal((await call('/auth/register', 'POST', { email: 'short@account-test.invalid', password: 'short' })).status, 400);
     const owner = await register();
     const stranger = await register();
@@ -78,6 +79,8 @@ test('accounts persist the full workspace flow and isolate owners', { skip: !pro
     const exported = (await call('/export', 'GET', null, secondBrowserCookie)).data;
     assert.equal(exported.tasks[0].nextStep, 'Verify persistence');
     assert.equal(exported.focusSessions[0].status, 'ended');
+    assert.deepEqual((await call('/sessions', 'GET', null, secondBrowserCookie)).data, exported.focusSessions);
+    assert.deepEqual((await call('/sessions', 'GET', null, stranger.cookie)).data, []);
     assert.deepEqual((await call('/export', 'GET', null, stranger.cookie)).data.tasks, []);
     assert.equal((await call('/sessions', 'POST', { taskId: id, durationPlannedSeconds: 1500 }, secondBrowserCookie)).status, 409);
     assert.equal((await call(`/tasks/${id}`, 'PATCH', { referenceUrl: 'javascript:alert(1)' }, secondBrowserCookie)).status, 400);

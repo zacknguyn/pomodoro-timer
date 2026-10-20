@@ -14,6 +14,10 @@ const transitionSchema = z.object({
   action: z.enum(['pause', 'resume', 'end']),
 }).strict();
 
+router.get('/', asyncRoute(async (req, res) => {
+  res.json(await focusSessionRepository.findAll(req.user.id));
+}));
+
 router.post('/', asyncRoute(async (req, res) => {
   const session = await focusSessionRepository.create(req.user.id, createSessionSchema.parse(req.body));
   res.status(201).json(session);

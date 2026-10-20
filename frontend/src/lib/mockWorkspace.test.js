@@ -22,6 +22,7 @@ test('focus stays global and stopping preserves unfinished work and session evid
   assert.equal(ended.status, 'ended')
   assert.equal(await mockWorkspace.getActiveSession(), null)
   const exported = await mockWorkspace.exportWorkspace()
+  assert.deepEqual(await mockWorkspace.listSessions(), exported.sessions)
   assert.equal(exported.tasks.find((item) => item.id === task.id).status, 'progress')
   assert.equal(exported.sessions.find((item) => item.id === session.id).status, 'ended')
 })

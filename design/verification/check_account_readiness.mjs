@@ -1,9 +1,8 @@
 // Real production UI + API + PostgreSQL. Run only against the disposable readiness server.
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 assert.equal(process.env.POMOGIT_READINESS_DISPOSABLE, 'true', 'Requires a disposable database/backend')
 const base = 'http://127.0.0.1:5174'
 const output = '/tmp/pomogit-account-readiness'
@@ -88,11 +87,11 @@ try {
     await page.goto(`${base}/#home`)
     await page.locator('.dash-heading').waitFor()
     // Only the failure is injected; retry uses the actual backend.
-    await page.route('**/api/export', route => route.abort())
+    await page.route('**/api/sessions', route => route.abort())
     await page.reload()
     await page.getByRole('button', { name: 'Try again', exact: true }).waitFor()
     check('History failure offers retry instead of fabricated figures', (await page.locator('main').innerText()).includes('Work history couldn’t load'))
-    await page.unroute('**/api/export')
+    await page.unroute('**/api/sessions')
     await page.getByRole('button', { name: 'Try again', exact: true }).click()
     await page.waitForFunction(() => !document.querySelector('main')?.textContent.includes('Work history couldn’t load'))
     await page.screenshot({ path: `${output}/home-${width}.png`, fullPage: true })

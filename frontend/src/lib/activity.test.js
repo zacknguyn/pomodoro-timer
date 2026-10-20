@@ -76,3 +76,13 @@ test('grouped dashboard projects preserve unassigned work and intersect type/dat
   assert.deepEqual(filterActivity(events, filters, now).map(event => event.id), ['api', 'unassigned'])
   assert.deepEqual(filterActivity(events, { ...filters, projectNames: undefined, project: 'web' }, now).map(event => event.id), ['other'])
 })
+
+test('focus history links each session to its task and preserves unlinked records', () => {
+  const tasks = Array.from({ length: 200 }, (_, index) => ({ ...task, id: `task-${index}`, notes: [] }))
+  const sessions = [0, 199, 'missing'].map(index => ({ ...session, id: `session-${index}`, taskId: `task-${index}` }))
+  const events = buildActivityEvents([...tasks, { ...tasks[0], title: 'Duplicate must not replace the original' }], sessions)
+  const focus = events.filter(event => event.kind === 'focus')
+  assert.deepEqual(focus.map(event => event.task?.id || null), ['task-0', 'task-199', null])
+  assert.equal(focus[0].task, tasks[0])
+  assert.equal(activitySummary(focus).seconds, 3600)
+})

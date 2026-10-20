@@ -1,8 +1,7 @@
 // Isolated account fixtures only. No live login, database or GitHub requests.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5193'
 const output = '/tmp/pomogit-floating-navigation-react'
 await mkdir(output, { recursive: true })
@@ -28,7 +27,7 @@ try {
       const data = {
         '/api/auth/me': { user: { id: 'navigation-fixture', email: 'fixture@test.invalid', role: 'user' } },
         '/api/tasks': tasks, '/api/checkpoints': [], '/api/sessions/active': process.env.POMOGIT_NAV_ACTIVE_FOCUS === '1' ? { id: 'focus', taskId: 'a', status: 'active', deadlineAt: new Date(Date.now() + 3600000).toISOString(), durationPlannedSeconds: 3600 } : null,
-        '/api/export': { focusSessions: [] }, '/api/github/projects': [],
+        '/api/sessions': [], '/api/export': { focusSessions: [] }, '/api/github/projects': [],
       }
       assert(Object.hasOwn(data, path), `Unexpected request ${path}`)
       await route.fulfill({ json: data[path] })

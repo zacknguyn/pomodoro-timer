@@ -1,8 +1,7 @@
 // Standalone HTML proposal only. Does not access user storage, account or GitHub APIs.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import {mkdir,writeFile} from 'node:fs/promises'
-const {chromium}=createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE||'playwright')
+import { chromium } from './browser.mjs'
 const output=process.env.POMOGIT_ACTIVITY_OUTPUT||'/tmp/pomogit-activity/preview'
 await mkdir(output,{recursive:true})
 const browser=await chromium.launch(),checks=[]

@@ -1,8 +1,7 @@
 // React account UI with intercepted APIs only; no account data or backend writes.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium }=createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE||'playwright')
+import { chromium } from './browser.mjs'
 const output=process.env.POMOGIT_ACTIVITY_OUTPUT||'/tmp/pomogit-activity-integration'
 await mkdir(output,{recursive:true})
 const browser=await chromium.launch(),checks=[]
@@ -15,7 +14,7 @@ try {
   // Fix the browser clock so local day boundaries and history fixture dates are deterministic.
   await page.clock.install({time:new Date('2026-10-15T18:00:00Z')})
   const stamp=(day,hour)=>`2026-10-${day}T${hour}:00:00-04:00`
-  let fail=false,empty=false,delayExport=0
+  let fail=false,empty=false,delayHistory=0
   const tasks=[
    {id:'oauth',title:'Fix callback retry',status:'progress',project:'checkout-api',nextStep:'Check the expired callback response',referenceUrl:'https://github.com/octocat/Hello-World/issues/1',createdAt:stamp(14,'09'),notes:[{id:'duplicate',kind:'note',text:'Expired code covered',createdAt:stamp(15,'12')},{id:'done-a',kind:'change',text:'Moved from progress to done.',createdAt:stamp(15,'11')},{id:'reopen',kind:'change',text:'Moved from done to progress.',createdAt:stamp(15,'11')}]},
    {id:'keyboard',title:'Check keyboard access to the task editor',status:'done',project:'web-client',nextStep:'',referenceUrl:'',createdAt:stamp(14,'08'),notes:[{id:'done-b',kind:'change',text:'Moved from progress to done.',createdAt:stamp(15,'10')}]},
@@ -30,12 +29,12 @@ try {
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname
    if(route.request().method()!=='GET'){mutations.push(path);return route.abort()}
-   if(delayExport&&path==='/api/export')await new Promise(resolve=>setTimeout(resolve,delayExport))
-   if(fail&&path==='/api/export')return route.fulfill({status:503,json:{error:'Fixture history failure'}})
+   if(delayHistory&&path==='/api/sessions')await new Promise(resolve=>setTimeout(resolve,delayHistory))
+   if(fail&&path==='/api/sessions')return route.fulfill({status:503,json:{error:'Fixture history failure'}})
    const responses={
     '/api/auth/me':{user:{id:'activity-fixture',email:'fixture@test.invalid',role:'user'}},
     '/api/tasks':empty?[]:tasks,'/api/checkpoints':empty?[]:[{id:'duplicate',whatChanged:'Expired code covered',outcome:'continue',createdAt:stamp(15,'12'),task:{id:'oauth'}}],
-    '/api/sessions/active':null,'/api/export':{tasks:empty?[]:tasks,focusSessions:empty?[]:sessions,checkpoints:[]},'/api/github/projects':[],
+    '/api/sessions/active':null,'/api/sessions':empty?[]:sessions,'/api/export':{tasks:empty?[]:tasks,focusSessions:empty?[]:sessions,checkpoints:[]},'/api/github/projects':[],
    }
    assert(Object.hasOwn(responses,path),`Unexpected fixture request ${path}`)
    await route.fulfill({json:responses[path]})
@@ -104,9 +103,9 @@ try {
   check('Activity selection survives page navigation',await page.getByRole('combobox',{name:'Project',exact:true}).inputValue()==='__no_project__'&&await page.getByRole('button',{name:'All time',exact:true}).getAttribute('aria-pressed')==='true')
   fail=true;await page.reload();await page.getByRole('button',{name:'Try again',exact:true}).waitFor()
   check('Load error hides stale summaries and offers retry',await page.getByRole('alert').isVisible()&&await page.locator('.activity-summary').count()===0)
-  fail=false;delayExport=500;await page.getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Loading your work history…',{exact:true}).waitFor();
+  fail=false;delayHistory=500;await page.getByRole('button',{name:'Try again',exact:true}).click();await page.getByText('Loading your work history…',{exact:true}).waitFor();
   check('Loading hides stale totals and empty success copy',await page.locator('.activity-summary').count()===0&&await page.locator('.activity-empty').count()===0)
-  await page.locator('.activity-event').first().waitFor();delayExport=0
+  await page.locator('.activity-event').first().waitFor();delayHistory=0
   check('Retry restores work history',await page.getByRole('alert').count()===0)
   empty=true;await page.reload();await page.locator('.activity-empty').waitFor()
   check('First-use history is explanatory without invented totals',/as you work/.test(await page.locator('.activity-empty').textContent())&&await page.locator('.activity-summary').count()===0)

@@ -1,9 +1,8 @@
 // Run against a disposable backend; this creates test accounts and tasks.
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5182'
 const api = process.env.POMOGIT_API_URL || 'http://127.0.0.1:3101/api'
 const output = '/tmp/pomogit-github-capture'

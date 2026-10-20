@@ -1,11 +1,6 @@
 import pool from '../lib/db.js';
 
 class UserRepository {
-  async findAll() {
-    const { rows } = await pool.query('SELECT id, email, display_name, role, banned, created_at FROM users ORDER BY created_at DESC');
-    return rows;
-  }
-
   async findById(id) {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     return rows[0] ?? null;
@@ -14,22 +9,6 @@ class UserRepository {
   async findByEmail(email) {
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     return rows[0] ?? null;
-  }
-
-  async findByUsername(username) {
-    const { rows } = await pool.query("SELECT * FROM users WHERE email LIKE $1", [`${username}@%`]);
-    return rows[0] ?? null;
-  }
-
-  async updateProfile(id, { displayName, bio, avatarStyle }) {
-    await pool.query(
-      `UPDATE users SET
-        display_name = COALESCE($1, display_name),
-        bio = COALESCE($2, bio),
-        avatar_style = COALESCE($3, avatar_style)
-       WHERE id = $4`,
-      [displayName ?? null, bio ?? null, avatarStyle ?? null, id]
-    );
   }
 
   async setBanned(id, banned) {

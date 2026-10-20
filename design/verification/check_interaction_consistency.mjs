@@ -1,9 +1,8 @@
 // Mock task checks plus an account-mode frontend with every API request intercepted.
 // Never use this against account data. Requires a second dev server with bypass disabled.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5190'
 const output = process.env.POMOGIT_INTERACTION_OUTPUT || '/tmp/pomogit-interaction-consistency'
 const browser = await chromium.launch()
@@ -65,7 +64,7 @@ try {
         '/api/admin/overview': { summary: { users: 1, suspended: 0, tasks: 0, sessionsToday: 0 }, activity: [] },
         '/api/admin/users': [{ id: 'delete-fixture', email: 'user@fixture.invalid', role: 'user', banned: false, created_at: new Date().toISOString(), task_count: 0, focus_session_count: 0 }],
         '/api/tasks': [], '/api/checkpoints': [], '/api/sessions/active': null,
-        '/api/export': { tasks: [], focusSessions: [], checkpoints: [] },
+        '/api/sessions': [], '/api/export': { tasks: [], focusSessions: [], checkpoints: [] },
         '/api/github/projects': [], '/api/github/repositories': { needsGithub: true, repositories: [], hasMore: false },
       }
       assert(Object.hasOwn(responses, path), `Unexpected API request: ${path}`)

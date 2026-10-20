@@ -17,7 +17,7 @@
 Pomogit connects planning, focused execution, and evidence of progress in one calm workspace. Capture a task, organize it on the board, focus on it, then mark it done and optionally leave a note or reference link.
 
 > [!IMPORTANT]
-> Pomogit runs locally with email accounts and PostgreSQL-backed workspaces and is not hosted. GitHub sign-in requires configuring an OAuth App; public repository connection and selected issue import are available. Private repository access and password recovery are not connected. The AWS infrastructure is defined as code for review. CI checks changes without deploying; deployment remains a separate manual step.
+> Pomogit is live at [pomogit.live](https://pomogit.live), with an AWS-hosted API and Neon PostgreSQL. GitHub sign-in, public repository connection and selected issue import are available. Private repository access and password recovery are not connected. CI checks changes without deploying; deployment remains a separate manual step. For continuation by another coding assistant, start with [AI_HANDOFF.md](AI_HANDOFF.md).
 
 ## The workflow
 
@@ -27,6 +27,7 @@ Capture in Inbox  ->  Organize in Ready  ->  Focus in In progress  ->  Done + op
 
 | Surface | Purpose |
 | --- | --- |
+| Home | See recorded focus, completions, project breakdowns and activity. |
 | Workspace | Pick a task, keep its next step close, and run the floating timer. |
 | Board | Organize tasks through Inbox, Ready, In progress, and Done. |
 | Activity | Review notes and task changes. |
@@ -48,7 +49,7 @@ flowchart LR
     API -->|Optional OAuth sign-in| GitHub[GitHub identity]
 ```
 
-Production builds always use real accounts and the API. An explicit development preview can still run without the backend. Deployment remains manual; this milestone does not provision or deploy AWS resources.
+Production builds always use real accounts and the API. An explicit development preview can still run without the backend. The live deployment uses CloudFront/private S3, API Gateway/Lambda, and Neon PostgreSQL; see [the deployment guide](deploy/aws/README.md) and [release record](design/verification/LIVE_RELEASE.md). Deployment remains manual.
 
 ## Technology
 

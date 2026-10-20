@@ -28,7 +28,7 @@ try {
     try { assert.equal((await invoke('/health')).statusCode, 200); break }
     catch { if (attempt > 20) throw Error('Local Lambda emulator did not become ready'); await new Promise(resolve => setTimeout(resolve, 250)) }
   }
-  for (const path of ['/api/tasks', '/api/sessions/active', '/api/checkpoints', '/api/export', '/api/github/projects', '/api/admin/users']) {
+  for (const path of ['/api/tasks', '/api/sessions', '/api/sessions/active', '/api/checkpoints', '/api/export', '/api/github/projects', '/api/admin/users']) {
     assert.equal((await invoke(path)).statusCode, 401)
   }
   assert.equal((await invoke('/api/auth/logout', 'POST', { origin: 'https://untrusted.example' })).statusCode, 403)

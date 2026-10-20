@@ -1,8 +1,7 @@
 // Account-mode UI with all API calls intercepted. No backend or GitHub writes.
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5191'
 const output = process.env.POMOGIT_FIRST_USE_OUTPUT || '/tmp/pomogit-first-use'
 await mkdir(output, { recursive: true })
@@ -27,7 +26,7 @@ try {
         const responses = {
           '/api/auth/me': { user: { id: 'first-use-fixture', email: 'fixture@test.invalid', role: 'user' } },
           '/api/tasks': tasks, '/api/checkpoints': [], '/api/sessions/active': session,
-          '/api/export': { tasks, focusSessions: [], checkpoints: [] },
+          '/api/sessions': [], '/api/export': { tasks, focusSessions: [], checkpoints: [] },
           '/api/github/projects': projects,
           '/api/github/repositories': { needsGithub: false, repositories: [project], hasMore: false },
           '/api/github/projects/fixture-project/issues': { issues: [{ number: 1, title: task.title, imported: tasks.length > 0 }], hasMore: false },

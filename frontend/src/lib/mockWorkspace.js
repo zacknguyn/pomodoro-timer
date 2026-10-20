@@ -244,6 +244,10 @@ export const mockWorkspace = {
     )
   },
 
+  async listSessions() {
+    return delay([...(state.sessions || []), ...(state.session ? [{ ...state.session }] : [])])
+  },
+
   async exportWorkspace() {
     return delay({
       exportedAt: new Date().toISOString(),

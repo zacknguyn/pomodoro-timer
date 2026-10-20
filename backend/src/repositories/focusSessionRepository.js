@@ -3,6 +3,14 @@ import pool from '../lib/db.js';
 import { ApiError, sessionToApi } from '../lib/workspaceApi.js';
 
 class FocusSessionRepository {
+  async findAll(userId, client = pool) {
+    const { rows } = await client.query(
+      'SELECT * FROM focus_sessions WHERE user_id = $1 ORDER BY started_at, id',
+      [userId]
+    );
+    return rows.map(sessionToApi);
+  }
+
   async findOpen(userId, client = pool) {
     const { rows } = await client.query(
       `SELECT * FROM focus_sessions

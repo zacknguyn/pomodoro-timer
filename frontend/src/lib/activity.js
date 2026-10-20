@@ -12,7 +12,9 @@ export function activityDuration(seconds) {
 }
 export function buildActivityEvents(tasks, sessions) {
   const events = []
+  const tasksById = new Map()
   for (const task of tasks) {
+    if (!tasksById.has(task.id)) tasksById.set(task.id, task)
     if (validDate(task.createdAt)) events.push({ id: `created-${task.id}`, task, kind: 'change', text: 'Task created.', createdAt: task.createdAt })
     for (const note of new Map((task.notes || []).map(note => [note.id, note])).values()) {
       if (!validDate(note.createdAt)) continue
@@ -24,7 +26,7 @@ export function buildActivityEvents(tasks, sessions) {
   for (const session of new Map(sessions.map(session => [session.id, session])).values()) {
     if (!['ended', 'completed'].includes(session.status) || !validDate(session.endedAt)) continue
     const seconds = Number(session.durationActualSeconds)
-    events.push({ id: `session-${session.id}`, task: tasks.find(task => task.id === session.taskId) || null, kind: 'focus', createdAt: session.endedAt, session, seconds: Number.isFinite(seconds) ? Math.max(0, seconds) : 0, text: 'Timer stopped.' })
+    events.push({ id: `session-${session.id}`, task: tasksById.get(session.taskId) || null, kind: 'focus', createdAt: session.endedAt, session, seconds: Number.isFinite(seconds) ? Math.max(0, seconds) : 0, text: 'Timer stopped.' })
   }
   return events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 }

@@ -1,9 +1,8 @@
 // Requires a disposable backend. Reads public GitHub data; writes only local test accounts.
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
-const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
+import { chromium } from './browser.mjs'
 const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5182'
 const api = `${base}/api`, output = process.env.POMOGIT_IMPORT_OUTPUT || '/tmp/pomogit-repository-import'
 await mkdir(output,{recursive:true})
