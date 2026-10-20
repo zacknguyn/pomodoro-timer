@@ -1,6 +1,6 @@
 # Pomogit: continuation handoff
 
-Updated 2026-10-20 after the performance release and signed-in user confirmation.
+Updated 2026-10-20 after the frontend loading release and user confirmation.
 This file is portable context for Claude, Codex, or another coding assistant. It is not
 permission to make new production changes. User instructions and inspected current
 source take precedence over this snapshot.
@@ -25,25 +25,31 @@ live account-backed app; the development mock remains a separate review tool.
 ## Current release and evidence
 
 - Repository: `https://github.com/zacknguyn/pomodoro-timer`; branch at handoff: `main`.
-- Current release source: `625bcd2f7c72d6200f4af4c19da73f43154ce432`.
+- Current release source: `c37fb248a69ac485f0e099dd75c2ebf934b3fdb7`.
+- Previous performance release source: `625bcd2f7c72d6200f4af4c19da73f43154ce432`.
 - Previous navigation release source: `235c9b23d777f6287b3c26b47928b08d7582ea6b`;
   its documentation commit was `93274e3`. Inspect HEAD and remote state; this
   latest release-record update may still be uncommitted.
 - Live frontend: `https://pomogit.live`; API: `https://api.pomogit.live`.
 - The 2026-10-20 deployment completed: backup, rollback snapshot, supported upgrade
-  migrations, API Lambda version 4/live alias, frontend upload and CloudFront refresh.
-  The API was published before the frontend; version 3 and the previous frontend
-  remain the current rollback target. No Terraform apply was needed.
+  migrations, API Lambda version 5/live alias, frontend upload and CloudFront refresh.
+  The API was published before the frontend; version 4 and the previous frontend
+  from `625bcd2` remain the current rollback target. No Terraform apply was needed.
 - Public readiness returned 200; anonymous `/api/auth/me` returned 401. Public HTML
   matched the production build. Desktop/phone public pages and GitHub handoff passed.
-- The deployed UI passed 132 navigation assertions with intercepted API fixtures.
+- The earlier navigation release passed 132 navigation assertions with intercepted API fixtures.
   The preceding local workflow pass covered 476 browser assertions, including capture,
   focus, completion, recorded figures, empty states, keyboard navigation and long menus.
-- The subsequent performance release passed 217 dashboard assertions against its
+- The earlier performance release passed 217 dashboard assertions against its
   deployed frontend with intercepted APIs, plus public desktop/phone login checks.
 - After the performance release, the user confirmed GitHub sign-in returns Home and
   existing Board tasks and dashboard history look correct. This is user-reported
   manual verification, not automated account access.
+- The latest loading release passed deployed desktop/phone font and public-screen
+  checks with intercepted account APIs: all four WOFF2 fonts loaded, no raw TTFs
+  were requested, and signed-in Home excluded the public screen chunks. Vietnamese
+  text, layout overflow and browser exceptions were checked. The user separately
+  confirmed Home and Board look correct; this does not prove a fresh OAuth flow.
 - No next feature is approved just because this release is complete. If the user has
   given a new task, act on it; otherwise ask what they want next. Suggest focused
   improvements before adding pages or replacing systems.
@@ -54,8 +60,8 @@ skills, `skills-lock.json` edits, and root review notes unless their inclusion i
 
 ## Performance release changes
 
-These changes followed the navigation release and are now deployed in API version 4
-and the current frontend:
+These changes first shipped in API version 4 after the navigation release and
+remain in the current release:
 
 - Removed unreachable helpers/components and unused/overwritten CSS. Consolidated
   auth/workspace HTTP transport, preserving errors, credentials and 401 behavior.
@@ -82,9 +88,10 @@ See `design/verification/CODE_CLEANUP.md`, `WORKSPACE_PERFORMANCE.md`, and
 The release published the backward-compatible backend endpoint before its frontend.
 No new schema migration was required; the existing guarded upgrade path was retained.
 
-## Frontend loading changes after the release
+## Frontend loading release
 
-The subsequent frontend loading pass is source work, not a production deployment.
+The frontend loading pass is deployed from `c37fb24` through the existing guarded
+release workflow. Both GitHub CI runs passed before publication.
 See `design/verification/FRONTEND_LOADING.md` for measurements and verification.
 Public screens load on demand alongside session restoration; existing auth gating
 and retry remain intact. The four application fonts use WOFF2 with their complete
@@ -95,7 +102,10 @@ The local throttled Home measurement improved about 19%; public pages have an ex
 chunk request and their single local timing samples are not a speed guarantee.
 Lint/tests/build, 96 visual states, final public-page comparisons and mocked auth
 expiry/error/retry checks passed. Inspect git history and the live release record:
-repository HEAD can include changes newer than deployed source `625bcd2`.
+repository HEAD can include changes newer than deployed source `c37fb24`.
+Live package and HTML identity, readiness, anonymous access boundaries, public
+GitHub authorization handoff and desktop/phone font checks all passed. See
+`design/verification/LIVE_RELEASE.md` for the evidence and rollback target.
 
 ## Product and workflow
 

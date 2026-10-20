@@ -1,6 +1,6 @@
 # Frontend loading pass — 2026-10-20
 
-Frontend source changes only; this pass does not include production deployment. No backend, account or cloud changes.
+The source optimization was frontend-only, with no backend or account behavior changes. It was subsequently deployed from `c37fb248a69ac485f0e099dd75c2ebf934b3fdb7` through the existing release workflow. See [live release verification](LIVE_RELEASE.md) for deployment evidence; the measurements below remain local benchmarks.
 
 ## Changes
 

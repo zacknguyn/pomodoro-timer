@@ -96,3 +96,47 @@ Post-publication evidence:
 Local evidence: `/tmp/pomogit-release-provenance.json`,
 `/tmp/pomogit-public-release/`, and `/tmp/pomogit-dashboard-integration/`.
 Private backup and rollback files remain under ignored deployment artifacts.
+
+## Frontend loading release — 2026-10-20
+
+Published source `c37fb248a69ac485f0e099dd75c2ebf934b3fdb7` to
+`https://pomogit.live` after both GitHub CI runs passed. The guarded preflight
+verified the intended AWS account/region and certificate-verified Neon connections
+and database role boundaries.
+
+The workflow saved a nonempty private database backup (mode 0600) and previous
+frontend snapshot, ran the existing supported upgrade path, published API version
+**5** before the frontend, and completed CloudFront invalidation. No Terraform
+apply, infrastructure provisioning, credential changes, database initialization
+or new schema migration was required. The current code rollback target is API
+version **4** and the frontend from `625bcd2`; database data is not automatically
+rolled back. Older static assets remain available for existing tabs and rollback.
+
+Packaging passed frontend lint, 35 unit tests, production build, backend syntax
+and 10 backend tests. Eight database integration tests were skipped in packaging;
+they passed separately before the preceding release against disposable PostgreSQL
+17.11. This optimization did not change backend code.
+
+Post-publication evidence:
+
+- The live API code hash matches the packaged zip, and public HTML exactly matches
+  the production build. `/ready` returns 200; anonymous `/api/auth/me` and
+  `/api/sessions` return 401. An initial verification network timeout was resolved
+  by retrying with certificate verification retained.
+- Strict-HTTPS desktop (1440px) and phone (390px) browsers render public landing
+  and login without exceptions or horizontal overflow. The real GitHub handoff
+  supplies the production callback and authorization state. Provider navigation
+  was intercepted before accessing any GitHub account.
+- On the deployed frontend with all account APIs intercepted, Home does not load
+  AuthScreen or LandingScreen chunks. All four WOFF2 fonts load with no raw TTF
+  requests. Vietnamese task text and all retained Barlow weights were checked at
+  desktop and phone widths, with no overflow or JavaScript exceptions. These
+  checks do not access or mutate real account data.
+- The user confirmed Home and Board look correct after refreshing the live app.
+  This confirms the visible account screens and text, not a fresh OAuth consent
+  flow. Local timing improvements in [FRONTEND_LOADING.md](FRONTEND_LOADING.md)
+  are controlled benchmarks, not measured production speed gains.
+
+Local evidence: `/tmp/pomogit-font-release-provenance.json`,
+`/tmp/pomogit-public-release/`, and `/tmp/pomogit-live-fonts/results.json`.
+Private backup and rollback files remain in ignored deployment artifacts.
