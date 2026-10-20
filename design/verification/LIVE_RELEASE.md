@@ -19,3 +19,41 @@ consistent with the infrastructure configuration. Pause/resume remains available
 as reviewed plan-only operator commands; no live pause/resume was performed.
 The first release has no previous frontend to restore through the standard code
 rollback command. Private backup and release metadata are under deploy/aws/.artifacts.
+
+## Navigation release — 2026-10-20
+
+Published source commit `235c9b23d777f6287b3c26b47928b08d7582ea6b` to
+`https://pomogit.live` through the existing guarded release workflow.
+AWS account/region and verified Neon connections/role boundaries passed before
+publication. The workflow saved a private database backup (mode 0600), retained
+the prior frontend/API alias for rollback, completed the supported upgrade
+migrations, published API version 3 and moved the `live` alias, uploaded the
+production frontend and completed CloudFront invalidation. No Terraform apply
+or new infrastructure provisioning was performed.
+
+Release packaging passed frontend lint, unit tests and production build,
+plus backend syntax and tests (9 passed, 8 database-dependent tests skipped in
+this packaging run). Earlier isolated UI workflow checks remain documented in
+[FLOATING_NAVIGATION.md](FLOATING_NAVIGATION.md).
+
+Post-publication checks:
+
+- The public HTML references the exact JavaScript asset from the production build.
+- API `/ready` returns 200; anonymous `/api/auth/me` returns 401.
+- Fresh strict-HTTPS browsers at 1440px and 390px render landing/login without
+  JavaScript exceptions or horizontal overflow.
+- The real GitHub authorization handoff supplies a state and the callback
+  `https://api.pomogit.live/api/auth/github/callback`. Provider navigation was
+  intercepted before accessing a GitHub account; no credentials/codes were logged.
+- The deployed frontend passed 132 navigation assertions across both layouts and
+  themes at desktop/phone widths, with every account API request intercepted.
+  These checks did not access or mutate real account data.
+
+Manual confirmation of GitHub login returning Home and existing Board tasks
+loading is pending for this release. The user has been asked to verify in their
+own browser. Do not treat fixture checks or the earlier launch confirmation as
+proof of this release's signed-in workflow.
+
+Local evidence: `/tmp/pomogit-public-release/` and
+`/tmp/pomogit-floating-navigation-live-fixtures/`. Backups and rollback metadata
+remain under ignored `deploy/aws/.artifacts/` and are not committed.
