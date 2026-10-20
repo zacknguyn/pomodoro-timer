@@ -6,3 +6,6 @@
 .pg-header{width:100%}.pg-home .pg-product-image picture{display:block}@media(max-width:760px){.pg-home .pg-product-image{max-width:390px;margin-inline:auto}.pg-hero>.pg-product-image{margin-top:40px}}
 
 .pg-public button:disabled{opacity:.55;cursor:default;transform:none}.pg-account-entry>[role=alert]{margin-bottom:20px}
+
+.pg-account-form input::placeholder{color:var(--muted);opacity:1}
+.pg-account-form>a{display:flex;align-items:center;justify-content:flex-end;min-height:44px}

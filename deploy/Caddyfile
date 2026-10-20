@@ -1,0 +1,24 @@
+# Example for one host: replace pomogit.example with your domain.
+# Only frontend/dist is served. Never expose the repository or backend directory.
+pomogit.example {
+	root * /srv/pomogit/current/frontend/dist
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	@backend path /api /api/* /health /ready
+	handle @backend {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle /assets/* {
+		file_server
+	}
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -25,7 +25,7 @@ try {
     const email = `${randomUUID()}@ui-test.invalid`, password = randomUUID()
     const check = (name, condition) => { assert(condition, name); cases.push({ width, name }) }
     const workspace = async (tab = page) => { await tab.locator('.premium-app').waitFor(); await tab.locator('.wb-capture button').waitFor({ state: 'visible' }); await tab.waitForFunction(() => !document.querySelector('.wb-capture button')?.disabled) }
-    const dismiss = async () => { const close = page.locator('.wb-toast button[aria-label="Dismiss notification"]'); if (await close.isVisible()) await close.click() }
+    const dismiss = async () => { const close = page.locator('.wb-notice button[aria-label="Dismiss notification"]'); if (await close.isVisible()) await close.click() }
     const login = async (tab, address = email, secret = password) => {
       await tab.goto(`${base}/#login`)
       await tab.locator('[name=email]').fill(address); await tab.locator('[name=password]').fill(secret)
@@ -64,7 +64,7 @@ try {
     await page.locator('button[form=wb-edit-task]').click()
     await page.locator('.wb-modal').waitFor({ state: 'hidden' }); await dismiss()
     await page.locator('.wb-card-title').click(); await page.locator('.wb-modal footer .wb-primary').click()
-    await page.locator('.wb-detail .wb-actions .wb-primary').click()
+    await page.getByRole('button', { name: 'Start focus', exact: true }).click()
     await page.waitForFunction(() => document.querySelector('.wb-focus')?.dataset.running === 'true')
     await page.reload(); await workspace()
     check('Reload restores active focus and In progress task', await page.locator('.wb-detail .wb-status').getAttribute('data-status') === 'progress')
@@ -88,13 +88,13 @@ try {
     await page.locator('button[form=wb-closing-note]').click(); await page.locator('.wb-modal').waitFor({ state: 'hidden' }); await dismiss()
     await peerPage.reload(); await workspace(peerPage)
     await peerPage.goto(`${base}/#review`)
-    await peerPage.locator('.wb-activity').waitFor()
-    check('Completion and closing note are shared across browsers', (await peerPage.locator('.wb-activity').textContent()).includes('Completed from another login'))
+    await peerPage.locator('.activity-page').waitFor()
+    check('Completion and closing note are shared across browsers', (await peerPage.locator('.activity-page').textContent()).includes('Completed from another login'))
     const snapshot = await context.request.get(`${base}/api/export`), data = await snapshot.json()
     check('Export includes task details and ended focus history', data.tasks[0].project === 'connected-checks' && data.focusSessions[0].status === 'ended')
     const storage = await page.evaluate(() => ({ ...localStorage }))
     check('Connected mode never creates mock data or stores passwords', !storage['pomogit.mock.v1'] && !JSON.stringify(storage).includes(password))
-    await page.goto(`${base}/#review`); await page.locator('.wb-activity').waitFor()
+    await page.goto(`${base}/#review`); await page.locator('.activity-page').waitFor()
     await page.screenshot({ path: `${output}/activity-${width}.png`, fullPage: true })
     check('Viewport fits', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     check('No JavaScript errors', errors.length === 0)

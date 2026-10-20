@@ -11,9 +11,11 @@ import checkpointController from './controllers/checkpointController.js';
 import workspaceExportController from './controllers/workspaceExportController.js';
 import { workspaceErrorHandler } from './lib/workspaceApi.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
+import pool from './lib/db.js';
+import { sharedAuthLimiter } from './middleware/sharedAuthLimiter.js';
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.AWS_LAMBDA_FUNCTION_NAME ? false : 1);
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
 
@@ -45,7 +47,7 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
-app.post(['/api/auth/login', '/api/auth/register', '/api/auth/github'], authLimiter);
+app.post(['/api/auth/login', '/api/auth/register', '/api/auth/github'], process.env.NODE_ENV === 'production' ? sharedAuthLimiter : authLimiter);
 app.use('/api/auth', authController);
 app.use('/api/tasks', authMiddleware, taskController);
 app.use('/api/github', authMiddleware, githubController);
@@ -56,6 +58,17 @@ app.use('/api/admin', adminController);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+// A live process is not necessarily ready to serve accounts.
+app.get('/ready', async (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    await pool.query({ text: 'SELECT 1', query_timeout: 3000 });
+    res.json({ status: 'ready' });
+  } catch {
+    res.status(503).json({ status: 'unavailable' });
+  }
 });
 
 app.use(workspaceErrorHandler);

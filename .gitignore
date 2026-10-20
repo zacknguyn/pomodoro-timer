@@ -12,3 +12,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Local Python verification caches.
+__pycache__/
+*.py[cod]

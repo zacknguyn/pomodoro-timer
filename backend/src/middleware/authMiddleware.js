@@ -1,9 +1,6 @@
-import authSessionRepository, { hashSessionToken } from '../repositories/authSessionRepository.js';
+import { getAuth, authHeaders, SESSION_COOKIE } from '../lib/auth.js';
+export { SESSION_COOKIE } from '../lib/auth.js';
 import pool from '../lib/db.js';
-
-export const SESSION_COOKIE = process.env.NODE_ENV === 'production'
-  ? '__Host-pomogit_session'
-  : 'pomogit_session';
 
 const DEV_BYPASS_AUTH = process.env.NODE_ENV !== 'production'
   && process.env.DEV_BYPASS_AUTH === 'true';
@@ -56,13 +53,14 @@ export const authMiddleware = async (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'Authentication required', code: 'unauthorized' });
 
   try {
-    const identity = await authSessionRepository.findActive(hashSessionToken(token));
-    if (!identity || identity.banned) {
-      return res.status(401).json({ error: 'Session expired', code: 'session_expired' });
-    }
-    req.authSessionId = identity.session_id;
+    const { response: session, headers } = await getAuth().api.getSession({ headers: authHeaders(req), returnHeaders: true });
+    if (!session) return res.status(401).json({ error: 'Session expired', code: 'session_expired' });
+    for (const cookie of headers.getSetCookie()) res.append('Set-Cookie', cookie);
+    // Read current authorization from PostgreSQL on every request; never trust a cached role/ban flag.
+    const { rows: [identity] } = await pool.query('SELECT id, email, role, banned FROM users WHERE id=$1', [session.user.id]);
+    if (!identity || identity.banned) return res.status(401).json({ error: 'Session expired', code: 'session_expired' });
+    req.authSessionId = session.session.id;
     req.user = { userId: identity.id, id: identity.id, email: identity.email, role: identity.role };
-    void authSessionRepository.touch(identity.session_id).catch(() => {});
     return next();
   } catch (error) {
     return next(error);

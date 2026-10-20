@@ -21,14 +21,6 @@ class UserRepository {
     return rows[0] ?? null;
   }
 
-  async create({ email, password }) {
-    const { rows } = await pool.query(
-      'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
-      [email, password]
-    );
-    return rows[0];
-  }
-
   async updateProfile(id, { displayName, bio, avatarStyle }) {
     await pool.query(
       `UPDATE users SET
@@ -46,10 +38,6 @@ class UserRepository {
 
   async setRole(id, role) {
     await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
-  }
-
-  async setPassword(id, password) {
-    await pool.query('UPDATE users SET password = $1 WHERE id = $2', [password, id]);
   }
 
   async delete(id) {

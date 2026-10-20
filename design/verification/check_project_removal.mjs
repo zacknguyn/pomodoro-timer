@@ -10,7 +10,8 @@ const database=process.env.POMOGIT_TEST_DATABASE_URL
 assert(database && /_verification$/.test(new URL(database).pathname))
 const pool=new Pool({connectionString:database,ssl:false})
 const browser=await chromium.launch(), checks=[]
-const base='http://127.0.0.1:5182', api='http://127.0.0.1:3101/api', output='/tmp/pomogit-project-removal'
+const base=process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5182'
+const api=`${base}/api`, output=process.env.POMOGIT_PROJECT_OUTPUT || '/tmp/pomogit-project-removal'
 await mkdir(output,{recursive:true})
 try {
  for(const width of [1440,390,320]) {
@@ -31,8 +32,9 @@ try {
   const session=await (await context.request.post(`${api}/sessions`,{data:{taskId:task.id,durationPlannedSeconds:60}})).json()
   await context.request.patch(`${api}/sessions/${session.id}`,{data:{action:'pause'}})
   await page.reload()
-  const open=()=>page.getByRole('button',{name:'Connect GitHub repository',exact:true}).click()
+  const open=()=>page.getByRole('button',{name: /^(Connect GitHub repository|Manage projects)$/}).click()
   await open()
+  await page.locator('.wb-repo-connect summary').click()
   await page.getByRole('textbox',{name:'Search repositories'}).waitFor()
   await page.getByRole('textbox',{name:'Search repositories'}).fill('website')
   check('Repository search narrows the loaded list',await page.getByRole('dialog').getByRole('button',{name:/demo\/website Public website/}).count()===1 && await page.getByRole('dialog').getByRole('button',{name:/demo\/api A connected repository/}).count()===0)
@@ -42,8 +44,8 @@ try {
   await page.screenshot({path:`${output}/picker-${width}.png`})
   await page.getByRole('button',{name:'Import issues from demo/api',exact:true}).click()
   await page.locator('.wb-github-issue').waitFor()
-  check('Current step and repository context are visible',await page.locator('li[aria-current=step]').textContent()==='2Choose issues' && (await page.locator('.wb-repo-context').textContent()).includes('demo/api'))
-  await page.getByRole('button',{name:'Change repository',exact:true}).click()
+  check('Current step and repository context are visible',await page.getByRole('dialog',{name:'Import more issues',exact:true}).isVisible() && (await page.locator('.wb-repo-context').textContent()).includes('demo/api'))
+  await page.locator('.wb-modal footer').getByRole('button',{name:'Back to projects',exact:true}).click()
   const remove=()=>page.getByRole('button',{name:'Remove project demo/api',exact:true}).click()
   await remove()
   check('Confirmation names the project and keeps history',(await page.getByRole('dialog').textContent()).includes('demo/api') && (await page.getByRole('dialog').textContent()).includes('timer history stay'))
@@ -62,7 +64,7 @@ try {
   check('Removal clears labels and preserves notes and references',kept.id===task.id && kept.project==='' && kept.notes.some(note=>note.text==='Preserve my note') && kept.referenceUrl===task.referenceUrl)
   check('Paused timer is preserved',(await (await context.request.get(`${api}/sessions/active`)).json()).id===session.id)
   check('Repository connection is removed',(await (await context.request.get(`${api}/github/projects`)).json()).length===0)
-  await page.getByRole('button',{name:'Cancel',exact:true}).click()
+  await page.getByRole('button',{name:'Done',exact:true}).click()
   await page.reload();await page.locator('.wb-detail h2').waitFor()
   check('Project stays removed after reload',await page.locator('.wb-project-shortcuts button[title="demo/api"]').count()===0)
   check('No browser errors',errors.length===0)

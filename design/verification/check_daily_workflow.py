@@ -40,7 +40,7 @@ def run(browser, output):
         page('review')
         assert browser.script("return document.querySelector('.wb-empty h2').textContent==='Your work will leave a trail here' && !document.querySelector('.wb-filters')"), 'empty history must explain what will appear'
         browser.screenshot(output/f'empty-activity-{width}.png')
-        click('.wb-empty .wb-primary')
+        click('.activity-empty button' if route=='review' else '.wb-empty .wb-primary')
         assert browser.script("return location.hash==='#tasks' && !!document.querySelector('.wb-board-empty') && !document.querySelector('.wb-board').textContent.includes('Drop a task here')")
         browser.screenshot(output/f'empty-board-{width}.png')
         click('.wb-board-empty button')
@@ -71,12 +71,12 @@ def run(browser, output):
         # Empty filter results must differ from a genuinely empty workspace.
         for route in ['tasks','work','review']:
             page(route)
-            browser.type('.wb-search input','no-such-regression-task')
+            browser.type('.activity-search input' if route=='review' else '.wb-search input','no-such-regression-task')
             settle()
-            assert browser.script("return document.querySelector('.wb-empty h2').textContent.includes('No matching') && !document.querySelector('.wb-detail') && !document.querySelector('.wb-board-card') && !document.querySelector('.wb-activity article')")
+            assert browser.script("return (document.querySelector('.wb-empty h2')?.textContent.includes('No matching') || document.querySelector('.activity-empty')?.textContent.includes('No activity matches')) && !document.querySelector('.wb-detail') && !document.querySelector('.wb-board-card') && !document.querySelector('.activity-event')")
             browser.screenshot(output/f'filtered-{route}-{width}.png')
-            click('.wb-empty .wb-primary')
-            assert browser.script("return document.querySelector('.wb-search input').value==='' && !document.querySelector('.wb-empty')"), 'clearing filters must restore existing content'
+            click('.activity-empty button' if route=='review' else '.wb-empty .wb-primary')
+            assert browser.script("return (document.querySelector('.wb-search input') || document.querySelector('.activity-search input')).value==='' && !document.querySelector('.wb-empty') && !document.querySelector('.activity-empty')"), 'clearing filters must restore existing content'
         page('tasks');click('.wb-card-title')
         assert browser.script("return document.querySelector('.wb-modal').getAttribute('aria-label')==='Verify callback recovery' && !document.querySelector('#wb-edit-task')")
         browser.screenshot(output/f'inspection-{width}.png')
@@ -109,7 +109,7 @@ def run(browser, output):
         click('.wb-card-title')
         assert browser.script("return document.querySelector('.wb-modal-body').textContent.includes('Covered the expired callback') && document.querySelector('.wb-modal-body').textContent.includes('Shipped the retry regression test.')")
         click('.wb-modal header button');page('review')
-        assert browser.script("return document.querySelector('.wb-activity').textContent.includes('Covered the expired callback')")
+        assert browser.script("return document.querySelector('.activity-page').textContent.includes('Covered the expired callback')")
         assert browser.script("return performance.getEntriesByType('resource').every(e=>!new URL(e.name).pathname.startsWith('/api/'))")
         browser.screenshot(output/f'activity-{width}.png')
         cases.append({'width':width,'empty_capture_organize_inspect_focus_note_finish_reload_activity':'passed','capture_destination':capture_destination,'first_use_and_filter_states':'passed','single_action_completion':True,'optional_note_dialog':optional_note_editor})
@@ -158,7 +158,7 @@ def run(browser, output):
             assert browser.script("return document.documentElement.scrollWidth<=innerWidth && document.querySelector('.premium-app').dataset.navigation===arguments[0]",navigation), 'empty state must fit both navigation layouts'
             if route=='work': click('.wb-empty-actions .wb-primary')
             elif route=='tasks': click('.wb-board-empty button')
-            else: click('.wb-empty .wb-primary')
+            else: click('.activity-empty button' if route=='review' else '.wb-empty .wb-primary')
             if route!='review':
                 assert browser.script("return document.activeElement.matches('.wb-capture input')")
             load(route)

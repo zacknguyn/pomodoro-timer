@@ -30,8 +30,9 @@ def run(b,out):
     geometry="""
     const box=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
     const main=document.querySelector('.wb-main'),rail=document.querySelector('.wb-project-shortcuts'),account=document.querySelector('.wb-account-menu summary');
-    const offenders=[...document.querySelectorAll('.wb-detail h2,.wb-next-step,.wb-saved-context p,.wb-project-shortcuts button,.wb-activity article p,.wb-modal-body')].filter(e=>e.scrollWidth>e.clientWidth+2).slice(0,6).map(e=>({class:e.className,tag:e.tagName,client:e.clientWidth,scroll:e.scrollWidth,text:e.textContent.slice(0,80)}));
-    return {documentOverflow:document.documentElement.scrollWidth>innerWidth+1,mainOverflow:main.scrollWidth>main.clientWidth+2,offenders,account:box(account),rail:rail?{...box(rail),scroll:rail.scrollWidth,client:rail.clientWidth,overlappingRows:[...rail.querySelectorAll('button')].filter(e=>e.scrollHeight>e.clientHeight+2).length}:null,cards:document.querySelectorAll('.wb-board-card').length,rows:document.querySelectorAll('.wb-task-row').length,events:document.querySelectorAll('.wb-activity article').length,readyHeader:document.querySelector('[data-drop=ready] h3')?box(document.querySelector('[data-drop=ready] h3')):null};
+    const offenders=[...document.querySelectorAll('.wb-detail h2,.wb-next-step,.wb-saved-context p,.wb-project-shortcuts button,.activity-event-copy,.wb-modal-body')].filter(e=>e.scrollWidth>e.clientWidth+2).slice(0,6).map(e=>({class:e.className,tag:e.tagName,client:e.clientWidth,scroll:e.scrollWidth,text:e.textContent.slice(0,80)}));
+    const detail=document.querySelector('.wb-detail');
+    return {detail:detail?box(detail):null,documentOverflow:document.documentElement.scrollWidth>innerWidth+1,mainOverflow:main.scrollWidth>main.clientWidth+2,offenders,account:box(account),rail:rail?{...box(rail),scroll:rail.scrollWidth,client:rail.clientWidth,overlappingRows:[...rail.querySelectorAll('button')].filter(e=>e.scrollHeight>e.clientHeight+2).length}:null,cards:document.querySelectorAll('.wb-board-card').length,rows:document.querySelectorAll('.wb-task-row').length,events:document.querySelectorAll('.activity-event').length,readyHeader:document.querySelector('[data-drop=ready] h3')?box(document.querySelector('[data-drop=ready] h3')):null};
     """
     load('work')
     for count in [50,100]:
@@ -70,7 +71,7 @@ def run(b,out):
     b.script("document.querySelector('.wb-modal-body').scrollTop=100000")
     check('120-note editor keeps header and save controls fixed',"const d=document.querySelector('.wb-modal');return document.querySelectorAll('.wb-note-history article').length===120 && Math.abs(d.querySelector('header').getBoundingClientRect().top-arguments[0][0])<1 && Math.abs(d.querySelector('footer').getBoundingClientRect().bottom-arguments[0][1])<1",before)
     b.screenshot(out/'long-history-dialog.png');click('.wb-modal header button')
-    click('.wb-detail .wb-actions .wb-primary')
+    click('.wb-focus-actions .wb-primary')
     # Scroll the context pane to its last unfinished row and check it is not covered.
     b.script("const rows=document.querySelectorAll('.wb-task-row');rows[rows.length-1].scrollIntoView({block:'end'})")
     check('Last Workspace context row stays clear of the timer',"const rows=document.querySelectorAll('.wb-task-row'),r=rows[rows.length-1].getBoundingClientRect(),t=document.querySelector('.wb-focus').getBoundingClientRect();return r.bottom<=t.top+1 || r.right<=t.left || r.left>=t.right")
@@ -85,6 +86,7 @@ def run(b,out):
     check('Mobile popup footer controls fit horizontally',"const f=document.querySelector('.wb-modal footer');return f.scrollWidth<=f.clientWidth+1")
     check('No backend requests',"return performance.getEntriesByType('resource').every(e=>!new URL(e.name).pathname.startsWith('/api/'))")
     check('Activity has no horizontal overflow across the workload matrix', 'return arguments[0]', all(not x['mainOverflow'] and not x['documentOverflow'] for x in report if x['route']=='review'))
+    check('Workspace detail remains readable across the workload matrix', 'return arguments[0]', all(x['detail'] and x['detail']['width'] >= 240 for x in report if x['route']=='work'))
     check('Project rows stay contained across the workload matrix', 'return arguments[0]', all(not x['rail']['overlappingRows'] for x in report if x['rail']))
     (out/'results.json').write_text(json.dumps({'geometry':report,'interactions':interactions},indent=2))
     assert all(x['passed'] for x in interactions), 'Workload regression failed; see results.json'

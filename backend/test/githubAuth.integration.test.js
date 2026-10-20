@@ -5,7 +5,7 @@ import { randomBytes, randomInt, randomUUID, createHash } from 'node:crypto';
 test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { skip: !process.env.POMOGIT_TEST_DATABASE_URL }, async (t) => {
   const url = new URL(process.env.POMOGIT_TEST_DATABASE_URL);
   assert.match(url.pathname, /_(test|verification)$/);
-  Object.assign(process.env, { DATABASE_URL: url.href, DATABASE_SSL: 'false', DEV_BYPASS_AUTH: 'false', NODE_ENV: 'development', FRONTEND_URL: 'http://localhost:5173' });
+  Object.assign(process.env, { DATABASE_URL: url.href, DATABASE_SSL: 'false', DEV_BYPASS_AUTH: 'false', NODE_ENV: 'development', FRONTEND_URL: 'http://localhost:5173', API_URL: 'http://api.localhost:5173' });
   const { default: app } = await import('../src/app.js');
   const { default: pool } = await import('../src/lib/db.js');
   const server = app.listen(0, '127.0.0.1');
@@ -21,6 +21,7 @@ test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { sk
   const states = [];
   const token = randomBytes(32).toString('base64url');
   t.mock.method(globalThis, 'fetch', async (url, options) => {
+    url = String(url);
     providerCalls.push({ url, options });
     if (providerFails) throw new Error('Provider unavailable');
     if (url === 'https://github.com/login/oauth/access_token') return Response.json({ access_token: token });
@@ -36,20 +37,20 @@ test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { sk
     const auth = new URL(authorizationUrl);
     const state = auth.searchParams.get('state');
     states.push(state);
-    const cookie = response.headers.get('set-cookie').split(';')[0];
+    const cookie = response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
     assert.match(response.headers.get('set-cookie'), /HttpOnly;.*SameSite=Lax/i);
     assert.equal(auth.origin, 'https://github.com');
     assert.equal(auth.searchParams.get('scope'), 'user:email');
     assert.equal(auth.searchParams.get('code_challenge_method'), 'S256');
-    const { rows: [stored] } = await pool.query('SELECT verifier FROM github_login_requests WHERE state_hash = $1', [createHash('sha256').update(state).digest('hex')]);
-    assert.equal(auth.searchParams.get('code_challenge'), createHash('sha256').update(stored.verifier).digest('base64url'));
-    return { state, cookie, verifier: stored.verifier };
+    const { rows: [stored] } = await pool.query('SELECT value FROM auth_verifications WHERE identifier = $1', ['auth-state:' + state]);
+    assert.equal(auth.searchParams.get('code_challenge'), createHash('sha256').update(JSON.parse(stored.value).codeVerifier).digest('base64url'));
+    return { state, cookie, verifier: JSON.parse(stored.value).codeVerifier };
   };
   const finish = (start, code = 'provider-test-code', cookie = start.cookie) => call(`/github/callback?state=${start.state}&code=${code}`, { headers: { Cookie: cookie } });
   const failure = (response, code) => {
     assert.equal(response.status, 303);
     assert.equal(new URL(response.headers.get('location')).searchParams.get('github_error'), code);
-    assert.ok(!response.headers.get('set-cookie').includes('pomogit_session='));
+    assert.ok(!(response.headers.get('set-cookie') || '').includes('pomogit_session='));
   };
   try {
     delete process.env.GITHUB_CLIENT_ID;
@@ -60,10 +61,10 @@ test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { sk
     assert.match((await unavailable.json()).error, /not configured/);
     process.env.GITHUB_CLIENT_ID = 'test-client';
     process.env.GITHUB_CLIENT_SECRET = randomBytes(32).toString('base64url');
-    process.env.GITHUB_CALLBACK_URL = 'http://localhost:5173/api/auth/github/callback';
+    process.env.GITHUB_CALLBACK_URL = 'http://api.localhost:5173/api/auth/github/callback';
     assert.equal((await call('/github', { method: 'POST', headers: { Origin: 'https://untrusted.invalid' } })).status, 403);
     const start = await begin();
-    failure(await finish(start, 'code', 'pomogit_github=wrong'), 'github_state_invalid');
+    failure(await finish(start, 'code', 'pomogit.state=wrong'), 'github_state_invalid');
     assert.equal(providerCalls.length, 0);
     const response = await finish(start);
     assert.equal(response.headers.get('location'), 'http://localhost:5173/#work');
@@ -78,13 +79,15 @@ test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { sk
     assert.equal(exchange.get('code_verifier'), start.verifier);
     assert.equal(exchange.get('redirect_uri'), process.env.GITHUB_CALLBACK_URL);
     assert.ok(!JSON.stringify(owner).includes(token));
+    const storedAccount = (await pool.query("SELECT access_token, refresh_token, id_token FROM auth_accounts WHERE user_id=$1 AND provider_id='github'", [owner.id])).rows[0];
+    assert.deepEqual(storedAccount, { access_token: null, refresh_token: null, id_token: null });
     failure(await finish(start), 'github_state_invalid');
     const repeat = await finish(await begin());
     const repeatSession = repeat.headers.getSetCookie().find(cookie => cookie.startsWith('pomogit_session='));
     assert.equal((await (await call('/me', { headers: { Cookie: repeatSession.split(';')[0] } })).json()).user.id, owner.id);
     assert.equal((await call('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'guess' }) })).status, 401);
     const expired = await begin();
-    await pool.query('UPDATE github_login_requests SET expires_at = NOW() - INTERVAL \'1 second\' WHERE state_hash = $1', [createHash('sha256').update(expired.state).digest('hex')]);
+    await pool.query("UPDATE auth_verifications SET expires_at = NOW() - INTERVAL '1 second', value = jsonb_set(value::jsonb, '{expiresAt}', '0')::text WHERE identifier = $1", ['auth-state:' + expired.state]);
     failure(await finish(expired), 'github_state_invalid');
     const cancelled = await begin();
     failure(await call(`/github/callback?state=${cancelled.state}&error=access_denied`, { headers: { Cookie: cancelled.cookie } }), 'github_cancelled');
@@ -104,10 +107,10 @@ test('GitHub sign-in validates OAuth and creates isolated opaque sessions', { sk
     providerCalls = [];
     failure(await call('/github/callback?state[]=bad&code[]=bad'), 'github_unavailable');
     assert.equal(providerCalls.length, 0);
-    assert.equal((await pool.query('SELECT COUNT(*)::int AS count FROM auth_sessions WHERE user_id = $1', [emailUser.id])).rows[0].count, 1);
+    assert.equal((await pool.query('SELECT COUNT(*)::int AS count FROM better_auth_sessions WHERE user_id = $1', [emailUser.id])).rows[0].count, 1);
   } finally {
     await pool.query('DELETE FROM users WHERE id = ANY($1::text[])', [users]);
-    await pool.query('DELETE FROM github_login_requests WHERE state_hash = ANY($1::text[])', [states.map(state => createHash('sha256').update(state).digest('hex'))]);
+    await pool.query('DELETE FROM auth_verifications WHERE identifier = ANY($1::text[])', [states.map(state => 'auth-state:' + state)]);
     await new Promise(resolve => server.close(resolve));
     await pool.end();
   }

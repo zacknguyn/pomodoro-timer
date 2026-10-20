@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pomogit · Floating navigation preview</title>
+  <link rel="icon" href="../frontend/public/pomogit-logo.png">
+  <link rel="stylesheet" href="floating-sidebar-preview.css">
+  <script src="floating-sidebar-preview.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#preview-content">Skip to content</a>
+  <header class="preview-heading">
+    <p><strong>Floating navigation</strong><span>HTML preview · sample data only</span></p>
+    <div class="preview-controls">
+    <div class="appearance" role="group" aria-label="Navigation layout">
+      <button data-layout="sidebar" aria-pressed="false">Sidebar</button>
+      <button data-layout="navbar" aria-pressed="true">Navbar</button>
+    </div>
+    <div class="appearance" role="group" aria-label="Preview appearance">
+      <button data-theme="light" aria-pressed="true">Light</button>
+      <button data-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+    </div>
+  </header>
+
+  <nav class="pill" aria-label="Main navigation">
+    <button class="brand" data-page="home" aria-label="Pomogit home" data-tip="Pomogit home"><img src="../frontend/public/pomogit-logo.png" width="32" height="32" alt=""><span class="brand-name">pomogit</span></button>
+    <div class="pill-pages">
+      <button data-page="home" data-icon="home" aria-label="Home" data-tip="Home"></button>
+      <button data-page="continue" data-icon="workspace" aria-label="Workspace" data-tip="Workspace"></button>
+      <button data-page="board" data-icon="board" aria-label="Board" data-tip="Board" aria-current="page"></button>
+      <button data-page="activity" data-icon="activity" aria-label="Activity" data-tip="Activity"></button>
+      <button class="desktop-only" id="projects-button" data-icon="folder" aria-label="Projects" data-tip="Projects" popovertarget="projects-popover"></button>
+      <button class="mobile-more" id="more-button" data-icon="more" aria-label="More navigation" data-tip="More" popovertarget="more-popover"></button>
+    </div>
+    <div class="pill-footer desktop-only">
+      <button data-settings data-icon="settings" aria-label="Settings" data-tip="Settings"></button>
+      <button data-page="profile" class="profile" aria-label="Profile" data-tip="Profile"><canvas id="dither-avatar" width="32" height="32" aria-hidden="true"></canvas><span class="profile-label">Profile</span></button>
+    </div>
+  </nav>
+
+  <main id="preview-content" tabindex="-1">
+    <iframe id="pages" title="Workspace, Board, Activity and Profile preview" src="pages-preview.html?scene=board&amp;theme=electric&amp;mode=light&amp;concept=violet&amp;nav=sidebar"></iframe>
+    <iframe id="home" title="Home dashboard preview" src="dashboard-preview.html?theme=light&amp;nav=navbar" hidden></iframe>
+  </main>
+
+  <section class="menu" id="projects-popover" popover aria-label="Projects">
+    <header><strong>Projects</strong><p>Open a filtered Board</p></header>
+    <div id="project-links"></div>
+  </section>
+  <section class="menu" id="more-popover" popover aria-label="More navigation">
+    <button data-projects-menu><span data-icon="folder"></span>Projects</button>
+    <button data-page="profile"><span data-icon="profile"></span>Profile</button>
+    <button data-settings><span data-icon="settings"></span>Settings</button>
+  </section>
+  <p class="sr-only" id="announcement" role="status"></p>
+</body>
+</html>

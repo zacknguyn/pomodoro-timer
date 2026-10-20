@@ -1,0 +1,10 @@
+{
+  "awsProfile": "pomogit",
+  "accountId": "123456789012",
+  "region": "ap-southeast-1",
+  "domain": "pomogit.example",
+  "sitePaused": false,
+  "hostedZoneId": "",
+  "budgetEmail": "you@example.com",
+  "backendEnv": "deploy/aws/backend.env"
+}

@@ -83,7 +83,7 @@ resource "aws_cloudfront_response_headers_policy" "site_security" {
 
   security_headers_config {
     content_security_policy {
-      content_security_policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'"
+      content_security_policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://api.${var.domain_name}"
       override                = true
     }
 
@@ -124,6 +124,7 @@ resource "aws_cloudfront_distribution" "site" {
   comment             = "${local.name_prefix} static frontend"
   default_root_object = "index.html"
   price_class         = var.cloudfront_price_class
+  aliases             = [var.domain_name]
 
   origin {
     domain_name              = aws_s3_bucket.site.bucket_regional_domain_name
@@ -134,26 +135,16 @@ resource "aws_cloudfront_distribution" "site" {
   default_cache_behavior {
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD", "OPTIONS"]
-    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    cache_policy_id            = local.static_cache_policy_id
     compress                   = true
     response_headers_policy_id = aws_cloudfront_response_headers_policy.site_security.id
     target_origin_id           = local.origin_id
     viewer_protocol_policy     = "redirect-to-https"
-  }
 
-  # Vite routes are resolved in the browser, so unknown S3 keys return the app shell.
-  custom_error_response {
-    error_caching_min_ttl = 0
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-  }
-
-  custom_error_response {
-    error_caching_min_ttl = 0
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa.arn
+    }
   }
 
   restrictions {
@@ -163,12 +154,21 @@ resource "aws_cloudfront_distribution" "site" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.site.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
     Name = "${local.name_prefix}-cdn"
   }
+}
+
+resource "aws_cloudfront_function" "spa" {
+  name    = "${local.name_prefix}-spa"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = file(var.site_paused ? "${path.module}/maintenance.js" : "${path.module}/spa.js")
 }
 
 data "aws_iam_policy_document" "site_bucket" {

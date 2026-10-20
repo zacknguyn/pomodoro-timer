@@ -96,7 +96,7 @@ test('accounts persist the full workspace flow and isolate owners', { skip: !pro
     assert.ok(afterDelete.tasks.some((task) => task.id === id));
     const invalidOrigin = await fetch(`${base}/tasks`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: secondBrowserCookie, Origin: 'https://untrusted.invalid' }, body: JSON.stringify({ title: 'Cross-site task' }) });
     assert.equal(invalidOrigin.status, 403);
-    await pool.query("UPDATE auth_sessions SET expires_at = NOW() - INTERVAL '1 second' WHERE user_id = $1", [users[0]]);
+    await pool.query("UPDATE better_auth_sessions SET expires_at = NOW() - INTERVAL '1 second' WHERE user_id = $1", [users[0]]);
     assert.equal((await call('/tasks', 'GET', null, secondBrowserCookie)).status, 401);
     const { rows: [stored] } = await pool.query('SELECT project, next_step, notes FROM tasks WHERE id = $1', [id]);
     assert.equal(stored.project, 'pomogit');

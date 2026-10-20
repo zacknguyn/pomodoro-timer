@@ -12,14 +12,17 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
+    "check:production": "node scripts/checkProduction.js",
     "db:init": "node scripts/database.js init",
     "db:workspace": "node scripts/database.js workspace",
     "db:github": "node scripts/database.js github",
     "db:projects": "node scripts/database.js projects",
+    "db:auth": "node scripts/database.js auth",
+    "db:auth-limits": "node scripts/database.js auth-limits",
     "db:migrate": "node scripts/database.js migrate",
     "db:cleanup-legacy": "node scripts/database.js cleanup-legacy",
     "admin:promote": "node scripts/promoteAdmin.js",
-    "check": "node --check index.js && node --check scripts/*.js && node --check src/app.js && node --check src/controllers/*.js && node --check src/lambdas/*.js && node --check src/lib/*.js && node --check src/middleware/*.js && node --check src/repositories/*.js && node --check src/services/*.js",
+    "check": "node scripts/checkSyntax.js",
     "test": "node --test"
   },
   "engines": {
@@ -29,6 +32,7 @@
     "@vendia/serverless-express": "^4.12.6",
     "argon2": "^0.45.1",
     "bcryptjs": "^2.4.3",
+    "better-auth": "1.7.10",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",

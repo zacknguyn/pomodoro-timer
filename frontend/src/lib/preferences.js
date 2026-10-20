@@ -6,7 +6,7 @@ const LEGACY_THEME_KEY = 'stillpoint.theme'
 
 export const DEFAULT_PROFILE = {
   displayName: 'Local maker',
-  headline: 'Shipping one meaningful change at a time.',
+  headline: '',
 }
 
 export const DEFAULT_WORK_PROTOCOL = {

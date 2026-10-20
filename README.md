@@ -56,7 +56,7 @@ Production builds always use real accounts and the API. An explicit development 
 - Tailwind CSS 4 with project-level interface styles
 - Lucide icons and Dither avatars
 - Node.js test runner and ESLint
-- Express and PostgreSQL with Argon2 password hashes and opaque server-side sessions
+- Express with Better Auth, PostgreSQL-backed sessions, Argon2 password hashes, and signed HttpOnly cookies
 - Terraform with the AWS provider
 - GitHub Actions and Dependabot
 
@@ -73,6 +73,8 @@ cp .env.example .env
 ```
 
 Replace `change-me` in both `POSTGRES_PASSWORD` and `DATABASE_URL` in the untracked `.env`. Keep `DATABASE_SSL=false` for the local database, `DEV_BYPASS_AUTH=false`, and `FRONTEND_URL=http://localhost:5173` for the default Vite origin. If you use `127.0.0.1` or another port, update the frontend origin to match exactly.
+
+Set a stable private random `BETTER_AUTH_SECRET` of at least 32 characters in `.env`. Production refuses to start without it. Development can use a process-local fallback, but its cookies will stop working after a backend restart. Existing databases also need `npm run db:auth` after the earlier migrations; it preserves user IDs, legacy hashes, GitHub identities, and task ownership, while requiring a new sign-in for old browser sessions. See the [migration guide](deploy/README.md).
 
 ```bash
 docker compose up -d --wait db
@@ -142,14 +144,21 @@ POMOGIT_PLAYWRIGHT_MODULE=/path/to/playwright node design/verification/check_con
 
 Optional `POMOGIT_CHROMIUM` selects an existing Chromium binary. The audit uses isolated desktop and mobile contexts and creates test accounts in the disposable database. It verifies saved context across browsers, actual login/logout, errors, focus, completion, and export. Firefox can run the account/timer checks with `python design/verification/check_connected_firefox.py --output /tmp/pomogit-connected-firefox`. Mobile checks use browser emulation, not a physical phone. Earlier UI-only audits expect mock data and should be used with the explicit development preview.
 
-## Infrastructure definition
+## AWS deployment preparation
 
-The configuration in [`terraform/`](./terraform) describes the intended static frontend edge:
+For provider-neutral hosting preparation, production configuration checks, database backup/restore, and manual rollback, see the [deployment runbook](./deploy/README.md). The examples keep the frontend and API on one HTTPS origin. No deployment or DNS change is performed by these files.
+
+The approved showcase setup uses **Route 53, CloudFront, private S3, API Gateway and Lambda**, with **Neon PostgreSQL** to avoid RDS/NAT fixed costs. The target is under US$10/month at low portfolio traffic, excluding the domain; usage and provider limits still matter. See the [AWS setup, push and rollback guide](./deploy/aws/README.md).
+
+The configuration in [`terraform/`](./terraform) includes:
 
 - globally unique, encrypted, versioned S3 origin;
 - all S3 public-access controls enabled;
 - CloudFront Origin Access Control with signed requests;
-- HTTPS redirect, compression, SPA route fallback, and browser security headers;
+- custom-domain ACM HTTPS, compression, static SPA routing and browser security headers;
+- uncached same-origin API routing with cookie/Origin forwarding;
+- the complete Express app on Lambda and an IAM-only migration function;
+- account verification, short log retention, shared default Lambda concurrency, API throttles and budget alerts;
 - conservative deletion defaults and short-lived noncurrent build versions.
 
 Static validation does not require an AWS deployment:
@@ -159,9 +168,10 @@ cd terraform
 terraform fmt -check -recursive
 terraform init -backend=false
 terraform validate
+terraform test           # Mocked provider; no AWS resources.
 ```
 
-There is intentionally no remote state backend, deploy role, AWS credential, `terraform plan`, or `terraform apply` in the repository yet.
+After one-time account, domain and database setup, updates use `node deploy/aws/cli.mjs push`. Provisioning uses a separately reviewed saved Terraform plan; CI never applies it. AWS credentials stay in the operator's CLI profile. Sensitive local state/plan/artifact files must remain private and backed up. No AWS deployment has been performed yet.
 
 ## Solo development and CI
 

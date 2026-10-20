@@ -83,8 +83,8 @@ export default function AdminView({ currentUser }) {
                   {!isSelf && user.role !== 'superadmin' && <button type="button" disabled={workingId === user.id} onClick={() => mutate(user.id, () => adminApi.toggleBan(user.id))}>{user.banned ? 'Restore' : 'Suspend'}</button>}
                   {!isSelf && user.role !== 'superadmin' && currentUser.role === 'superadmin' && <button type="button" disabled={workingId === user.id} onClick={() => mutate(user.id, () => adminApi.setRole(user.id, user.role === 'admin' ? 'user' : 'admin'))}><UserRoundCog size={14} /> {user.role === 'admin' ? 'Remove admin' : 'Make admin'}</button>}
                   {!isSelf && user.role === 'user' && (armedDelete !== user.id
-                    ? <button className="danger-link" type="button" onClick={() => setArmedDelete(user.id)}><Trash2 size={14} /> Delete</button>
-                    : <button className="danger-confirm" type="button" disabled={workingId === user.id} onClick={() => mutate(user.id, () => adminApi.deleteUser(user.id))}>Confirm delete</button>)}
+                    ? <button className="danger-link" type="button" aria-label={`Delete ${user.email}`} onClick={() => setArmedDelete(user.id)}><Trash2 size={14} /> Delete</button>
+                    : <><button className="danger-confirm" type="button" aria-label={`Confirm delete ${user.email}`} disabled={workingId === user.id} onClick={() => mutate(user.id, () => adminApi.deleteUser(user.id))}>Confirm delete</button><button type="button" aria-label={`Cancel deleting ${user.email}`} disabled={workingId === user.id} onClick={(event) => { const actions = event.currentTarget.parentElement; setArmedDelete(''); requestAnimationFrame(() => actions.querySelector('.danger-link')?.focus()) }}>Cancel</button></>)}
                 </div></td>
               </tr>
             })}</tbody>

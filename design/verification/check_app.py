@@ -139,11 +139,11 @@ def run(browser, output):
     browser.click('.wb-page-menu summary');browser.click('.wb-page-menu nav button:first-child')
     # All destinations appear in the switcher; browser history follows navigation.
     browser.click('.wb-page-menu summary');browser.click('.wb-page-menu nav button:nth-child(4)')
-    assert browser.script("return document.querySelector('.wb-profile') !== null"), 'Profile switcher destination missing'
+    assert browser.script("return document.querySelector('.pg-profile-page') !== null"), 'Profile switcher destination missing'
     browser.script('history.back()');settle()
     assert browser.script("return document.querySelector('.wb-heading h1').textContent") == 'Workspace', 'Back does not restore the prior page'
     browser.script('history.forward()');settle()
-    assert browser.script("return document.querySelector('.wb-profile') !== null"), 'Forward does not restore Profile'
+    assert browser.script("return document.querySelector('.pg-profile-page') !== null"), 'Forward does not restore Profile'
     browser.click('.wb-page-menu summary');browser.click('.wb-page-menu nav button:nth-child(2)')
     browser.script("const select=document.querySelector('[data-drop=inbox] .wb-move-control select');select.value='done';select.dispatchEvent(new Event('change',{bubbles:true}));")
     settle();browser.click('.wb-modal footer button:last-child');settle()
@@ -174,7 +174,7 @@ def run(browser, output):
     check('workflow:mobile')
     browser.click('.wb-page-menu summary');browser.click('.wb-page-menu nav button:nth-child(3)')
     assert browser.script("return document.querySelector('.wb-focus').hidden"), 'Activity shows an idle timer without task context'
-    browser.click('.wb-activity-title')
+    browser.click('.activity-open');browser.click('.wb-modal footer button:last-child')
     assert browser.script("return document.querySelector('.wb-modal footer button:last-child').textContent").strip() in ['Open in Workspace', 'Reopen in Workspace'], 'Activity does not use task inspection'
     browser.click('.wb-modal header button')
     # Settings Cancel preserves saved behavior, and profile sharing is explicit.
@@ -184,12 +184,12 @@ def run(browser, output):
     browser.click('.wb-modal footer div button:first-child')
     assert not browser.script("return document.querySelector('.premium-app').classList.contains('wb-compact')"),'Cancel applies settings'
     browser.click('.wb-account-menu summary');browser.click('.wb-account-menu nav button:first-of-type')
-    browser.click('.wb-profile-toolbar button:first-of-type')
-    before_name=browser.script("return document.querySelector('.wb-profile-identity h2').textContent")
+    browser.click('.pg-profile-identity>button')
+    before_name=browser.script("return document.querySelector('.pg-profile-identity h2').textContent")
     browser.script("document.querySelector('#wb-profile-form input[name=displayName]').value='Cancelled name'")
     browser.click('.wb-modal footer button:first-child')
-    assert browser.script("return document.querySelector('.wb-profile-identity h2').textContent")==before_name,'Cancel applies profile edits'
-    browser.click('.wb-profile-toolbar button:first-of-type')
+    assert browser.script("return document.querySelector('.pg-profile-identity h2').textContent")==before_name,'Cancel applies profile edits'
+    browser.click('.pg-profile-identity>button')
     browser.script("document.querySelector('#wb-profile-form input[name=displayName]').value='Renamed developer'")
     time.sleep(.7)
     avatar_hue="const c=document.querySelector('.wb-avatar-editor canvas'),data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let r=0,g=0,b=0;for(let i=0;i<data.length;i+=4){if(data[i+3]>128){r+=data[i];g+=data[i+1];b+=data[i+2]}}return Math.round(Math.atan2(Math.sqrt(3)*(g-b),2*r-g-b)*180/Math.PI);"
@@ -201,17 +201,17 @@ def run(browser, output):
     browser.click('.wb-modal footer button:last-child')
     time.sleep(.7)
     assert browser.script("return document.querySelector('.wb-account-menu canvas').toDataURL()")==avatar,'saved avatar differs from chosen preview after name edit'
-    browser.click('.wb-featured header button')
+    browser.click('.pg-profile-section>header button')
     browser.click('.wb-feature-option input[type=checkbox]')
     browser.type('.wb-feature-summary textarea','Explicit public outcome')
     browser.click('.wb-modal footer button:last-child')
-    assert browser.script("return document.querySelectorAll('.wb-featured > article').length")==1
-    browser.click('.wb-profile-toolbar button:last-child')
-    public=browser.script("return document.querySelector('.wb-profile').innerText")
+    assert browser.script("return document.querySelectorAll('.pg-profile-featured > article').length")==1
+    browser.click('.pg-profile-preview-notice>button')
+    public=browser.script("return document.querySelector('.pg-profile-page').innerText")
     assert 'Explicit public outcome' in public
     assert 'Covered the expired callback branch.' not in public
     assert 'Private notes' not in public
-    assert not browser.script("return document.querySelector('.wb-rhythm')"),'activity shared without opt-in'
+    assert not browser.script("return document.querySelector('.pg-profile-rhythm')"),'activity shared without opt-in'
     check('profile:explicit-sharing')
     browser.screenshot(output/'profile-featured-1440.png')
     # First-use flow has one clear create action and no idle timer.

@@ -38,7 +38,7 @@ test('public repository connections persist and issue imports are isolated and i
     assert.equal((await call('/github/projects')).status,401);
     const owner = await register(); const stranger = await register();
     assert.equal((await call('/github/repositories',owner)).data.needsGithub,true);
-    await pool.query('UPDATE users SET github_id=$1 WHERE id=$2',[randomUUID(),users[0]]);
+    await pool.query("INSERT INTO auth_accounts (account_id,user_id,provider_id) VALUES ($1,$2,'github')",[randomUUID(),users[0]]);
     assert.equal((await call('/github/repositories',owner)).data.repositories[0].fullName,repository.full_name);
     assert.equal((await call('/github/projects',owner,'POST',{repository:'https://evil.invalid/repo'})).status,400);
     assert.equal((await call('/github/projects',owner,'POST',{repository:'https://github.com/test-owner/test-repo/issues/7'})).status,400);

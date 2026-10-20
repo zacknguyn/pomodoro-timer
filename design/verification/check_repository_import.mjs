@@ -4,7 +4,8 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { mkdir, writeFile } from 'node:fs/promises'
 const { chromium } = createRequire(import.meta.url)(process.env.POMOGIT_PLAYWRIGHT_MODULE || 'playwright')
-const base = 'http://127.0.0.1:5182', api = 'http://127.0.0.1:3101/api', output = '/tmp/pomogit-repository-import'
+const base = process.env.POMOGIT_APP_URL || 'http://127.0.0.1:5182'
+const api = `${base}/api`, output = process.env.POMOGIT_IMPORT_OUTPUT || '/tmp/pomogit-repository-import'
 await mkdir(output,{recursive:true})
 const browser = await chromium.launch()
 const checks=[]
@@ -18,7 +19,7 @@ try {
   await page.locator('[name=email]').fill(`${randomUUID()}@repository-ui-test.invalid`)
   await page.locator('[name=password]').fill(randomUUID())
   await page.locator('.pg-account-form button[type=submit]').click()
-  const open=()=>page.getByRole('button',{name:'Connect GitHub repository',exact:true}).click()
+  const open=()=>page.getByRole('button',{name: /^(Connect GitHub repository|Manage projects)$/}).click()
   await open()
   await page.getByRole('dialog').waitFor()
   await page.getByText('Sign in with GitHub to browse your repositories, or paste any public repository URL above.').waitFor()
@@ -48,6 +49,7 @@ try {
   await page.getByRole('dialog').getByRole('button',{name:'Import issues from octocat/Hello-World',exact:true}).click()
   await page.locator('.wb-github-issue small').filter({hasText:'Already imported'}).waitFor()
   check('Repeat imports are visibly excluded',await page.locator('.wb-github-issue input:disabled').count()===1)
+  await page.locator('.wb-modal footer').getByRole('button',{name:'Back to projects',exact:true}).click()
   await page.getByRole('button',{name:'Done',exact:true}).click()
   check('No browser errors',errors.length===0)
   await context.close()

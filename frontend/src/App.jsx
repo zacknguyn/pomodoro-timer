@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import AuthScreen from './components/AuthScreen'
 import LandingScreen from './components/LandingScreen'
 import { authApi } from './lib/authApi'
-import { resolveInitialView, WORKSPACE_VIEWS } from './lib/navigation'
+import { GITHUB_LANDING_KEY, githubLandingView, resolveInitialView, WORKSPACE_VIEWS } from './lib/navigation'
 import { hasOpenedWorkspace, markWorkspaceOpened, readProfile, readWorkProtocol, writeWorkProtocol } from './lib/preferences'
 
 import { LOCAL_PREVIEW } from './lib/runtime'
@@ -11,6 +11,7 @@ const PUBLIC_VIEWS = ['landing', 'login', 'register', 'recover']
 const LOCAL_PREVIEW_USER = { id: '00000000-0000-4000-8000-000000000001', email: 'Local preview', role: 'user' }
 
 const VIEW_LOADERS = {
+  home: () => import('./components/Workbench'),
   work: () => import('./components/Workbench'),
   tasks: () => import('./components/Workbench'),
   review: () => import('./components/Workbench'),
@@ -23,7 +24,7 @@ const AdminView = lazy(VIEW_LOADERS.admin)
 
 function requestedView() {
   const raw = window.location.hash.slice(1)
-  const requested = raw === 'settings' ? 'profile' : raw
+  const requested = githubLandingView(raw === 'settings' ? 'profile' : raw, sessionStorage)
   return [...WORKSPACE_VIEWS, ...PUBLIC_VIEWS].includes(requested) ? requested : ''
 }
 
@@ -38,7 +39,7 @@ function AuthLoading() {
 export default function App() {
   const [view, setView] = useState(() => {
     const requested = requestedView()
-    if (LOCAL_PREVIEW) return requested || 'work'
+    if (LOCAL_PREVIEW) return requested || 'home'
     return requested || resolveInitialView({ requested, workspaceOpened: hasOpenedWorkspace(localStorage) })
   })
   const [preferences, setPreferences] = useState(() => readWorkProtocol(localStorage))
@@ -80,16 +81,17 @@ export default function App() {
   const canAccessAdmin = ['admin', 'superadmin'].includes(auth.user?.role)
   const currentView = !auth.user && auth.status === 'ready' && !PUBLIC_VIEWS.includes(view)
     ? 'login'
-    : view === 'admin' && !canAccessAdmin ? 'work' : view
+    : view === 'admin' && !canAccessAdmin ? 'home' : view
 
   useEffect(() => {
+    if (currentView === 'home') { try { sessionStorage.removeItem(GITHUB_LANDING_KEY) } catch { /* Navigation still works with storage disabled. */ } }
     if (window.location.hash !== `#${currentView}`) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${currentView}`)
     }
   }, [currentView])
 
   useEffect(() => {
-    function followLocation() { const next = requestedView(); setView(next || 'work') }
+    function followLocation() { const next = requestedView(); setView(next || 'home') }
     window.addEventListener('popstate', followLocation)
     window.addEventListener('hashchange', followLocation)
     return () => { window.removeEventListener('popstate', followLocation); window.removeEventListener('hashchange', followLocation) }
@@ -107,7 +109,7 @@ export default function App() {
     setPreferences(readWorkProtocol(localStorage, user.id))
     markWorkspaceOpened(localStorage)
     setAuth({ status: 'ready', user })
-    navigate(WORKSPACE_VIEWS.includes(view) && (view !== 'admin' || ['admin', 'superadmin'].includes(user.role)) ? view : 'work')
+    navigate(WORKSPACE_VIEWS.includes(view) && (view !== 'admin' || ['admin', 'superadmin'].includes(user.role)) ? view : 'home')
   }
 
   async function logout() {
@@ -119,7 +121,7 @@ export default function App() {
   if (auth.status === 'error') return <main className="auth-loading"><Brand /><p role="alert">{auth.error}</p><button onClick={() => window.location.reload()}>Try again</button></main>
   if (auth.status === 'loading') return <AuthLoading />
   const publicView = PUBLIC_VIEWS.includes(currentView)
-  const openWorkspace = () => { markWorkspaceOpened(localStorage); navigate('work') }
+  const openWorkspace = () => { markWorkspaceOpened(localStorage); navigate('home') }
   return <>
     {(publicView || !auth.user) && (currentView === 'landing'
       ? <LandingScreen onNavigate={navigate} onOpen={() => navigate('register')} onDemo={LOCAL_PREVIEW || auth.user ? openWorkspace : () => navigate('register')} preview={LOCAL_PREVIEW} palette={preferences.palette} theme={theme} reducedMotion={preferences.motion === 'reduced'} />

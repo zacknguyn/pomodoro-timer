@@ -7,7 +7,14 @@ aws_region   = "us-west-2"
 force_destroy_bucket = false
 
 cloudfront_price_class = "PriceClass_100"
+# Reviewed pause/resume plans preserve data and remove public backend access.
+site_paused = false
 
 tags = {
   Owner = "pomodoro-admin"
 }
+
+# Prefer deploy/aws/config.json and its CLI for account/domain settings and secret
+# TF_VAR inputs. Never put real database URLs or OAuth secrets in committed files.
+# The complete stack also requires account_id, domain_name, lambda_zip_path,
+# database_url, migration_database_url and budget_email. See deploy/aws/README.md.

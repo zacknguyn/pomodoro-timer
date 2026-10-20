@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Github } from 'lucide-react'
 import { authApi } from '../lib/authApi'
+import { GITHUB_LANDING_KEY } from '../lib/navigation'
 import './PublicScreens.css'
 
 const GITHUB_ERRORS = {
@@ -23,6 +24,7 @@ export default function AuthScreen({ initialMode = 'login', preview = false, onA
   useEffect(() => {
     const url = new URL(window.location.href)
     if (url.searchParams.has('github_error')) {
+      try { sessionStorage.removeItem(GITHUB_LANDING_KEY) } catch { /* Optional landing hint. */ }
       url.searchParams.delete('github_error')
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
     }
@@ -35,6 +37,7 @@ export default function AuthScreen({ initialMode = 'login', preview = false, onA
       const { authorizationUrl } = await authApi.github()
       const url = new URL(authorizationUrl)
       if (url.origin !== 'https://github.com' || url.pathname !== '/login/oauth/authorize') throw new Error('The account service returned an invalid GitHub sign-in link.')
+      try { sessionStorage.setItem(GITHUB_LANDING_KEY, 'home') } catch { /* Keep sign-in usable if browser storage is disabled. */ }
       window.location.assign(url.href)
     } catch (failure) { setError(failure.message); setBusy(false) }
   }

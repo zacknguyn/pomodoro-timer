@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+.git
+.agents
+.codex
+.aws
+design
+terraform
+deploy/aws/.artifacts
+deploy/aws/config.json
+deploy/aws/backend.env
+**/*.dump
+**/*.pem
+**/*.key

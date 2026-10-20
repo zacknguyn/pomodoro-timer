@@ -1,4 +1,7 @@
 import pg from 'pg';
+import { validateProductionConfig } from './productionConfig.js';
+
+validateProductionConfig();
 
 const { Pool } = pg;
 const databaseSsl = process.env.DATABASE_SSL === 'false'
@@ -13,7 +16,7 @@ const databaseSsl = process.env.DATABASE_SSL === 'false'
 // Module-level singleton — reused across warm Lambda invocations
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1,                  // 1 connection per Lambda instance; RDS handles the rest
+  max: 1,                  // 1 connection per warm Lambda instance
   idleTimeoutMillis: 10000, // close idle connections so Lambda doesn't hold them open
   connectionTimeoutMillis: 5000,
   ssl: databaseSsl,

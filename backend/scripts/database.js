@@ -14,12 +14,16 @@ const file = command === 'init'
       ? resolve('migrations/004_github_login.sql')
     : command === 'projects'
       ? resolve('migrations/005_github_projects.sql')
+    : command === 'auth'
+      ? resolve('migrations/007_better_auth.sql')
+    : command === 'auth-limits'
+      ? resolve('migrations/006_auth_rate_limits.sql')
     : command === 'cleanup-legacy'
       ? resolve('migrations/002_remove_legacy_product.sql')
     : null;
 
 if (!file) {
-  console.error('Usage: node scripts/database.js <init|migrate|workspace|github|projects|cleanup-legacy>');
+  console.error('Usage: node scripts/database.js <init|migrate|workspace|github|projects|auth|auth-limits|cleanup-legacy>');
   process.exitCode = 2;
 } else {
   try {

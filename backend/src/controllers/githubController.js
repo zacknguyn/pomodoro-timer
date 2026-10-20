@@ -38,7 +38,7 @@ router.get('/projects', asyncRoute(async (req, res) => {
 }));
 router.get('/repositories', asyncRoute(async (req, res) => {
   const page = pageSchema.parse(req.query.page);
-  const { rows: [user] } = await pool.query('SELECT github_id FROM users WHERE id=$1', [req.user.id]);
+  const { rows: [user] } = await pool.query("SELECT account_id AS github_id FROM auth_accounts WHERE user_id=$1 AND provider_id='github'", [req.user.id]);
   if (!user?.github_id) return res.json({ repositories: [], hasMore: false, needsGithub: true });
   const identity = await githubRead(`/user/${encodeURIComponent(user.github_id)}`);
   if (!/^[a-z\d-]{1,39}$/i.test(identity.login)) throw new ApiError(502, 'GitHub returned an invalid identity.');
