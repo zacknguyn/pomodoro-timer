@@ -1,7 +1,7 @@
-@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-400.ttf'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-500.ttf'); font-weight: 500; font-display: swap; }
-@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-600.ttf'); font-weight: 600; font-display: swap; }
-@font-face { font-family: 'Pomogit Bricolage'; src: url('/fonts/bricolage-600.ttf'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-500.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Pomogit Barlow'; src: url('/fonts/barlow-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Pomogit Bricolage'; src: url('/fonts/bricolage-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
 .premium-app {
   height: var(--wb-height,100dvh); min-height: 0; display: flex; flex-direction: column;
   background: var(--wb-canvas); color: var(--wb-ink); font: 1rem/1.5 'Pomogit Barlow',sans-serif;

@@ -1,6 +1,6 @@
 # Pomogit: continuation handoff
 
-Updated 2026-10-20 after verified source cleanup, performance work and database checks.
+Updated 2026-10-20 after the performance release and signed-in user confirmation.
 This file is portable context for Claude, Codex, or another coding assistant. It is not
 permission to make new production changes. User instructions and inspected current
 source take precedence over this snapshot.
@@ -25,19 +25,25 @@ live account-backed app; the development mock remains a separate review tool.
 ## Current release and evidence
 
 - Repository: `https://github.com/zacknguyn/pomodoro-timer`; branch at handoff: `main`.
-- Release source: `235c9b23d777f6287b3c26b47928b08d7582ea6b`.
-- Deployed release documentation: `93274e3`. Subsequent source changes are described
-  below; inspect HEAD and remote state rather than treating them as deployed.
+- Current release source: `625bcd2f7c72d6200f4af4c19da73f43154ce432`.
+- Previous navigation release source: `235c9b23d777f6287b3c26b47928b08d7582ea6b`;
+  its documentation commit was `93274e3`. Inspect HEAD and remote state; this
+  latest release-record update may still be uncommitted.
 - Live frontend: `https://pomogit.live`; API: `https://api.pomogit.live`.
 - The 2026-10-20 deployment completed: backup, rollback snapshot, supported upgrade
-  migrations, API Lambda version 3/live alias, frontend upload and CloudFront refresh.
+  migrations, API Lambda version 4/live alias, frontend upload and CloudFront refresh.
+  The API was published before the frontend; version 3 and the previous frontend
+  remain the current rollback target. No Terraform apply was needed.
 - Public readiness returned 200; anonymous `/api/auth/me` returned 401. Public HTML
   matched the production build. Desktop/phone public pages and GitHub handoff passed.
 - The deployed UI passed 132 navigation assertions with intercepted API fixtures.
   The preceding local workflow pass covered 476 browser assertions, including capture,
   focus, completion, recorded figures, empty states, keyboard navigation and long menus.
-- After publication, the user confirmed GitHub sign-in returns Home and existing Board
-  tasks load. This is user-reported manual verification, not automated account access.
+- The subsequent performance release passed 217 dashboard assertions against its
+  deployed frontend with intercepted APIs, plus public desktop/phone login checks.
+- After the performance release, the user confirmed GitHub sign-in returns Home and
+  existing Board tasks and dashboard history look correct. This is user-reported
+  manual verification, not automated account access.
 - No next feature is approved just because this release is complete. If the user has
   given a new task, act on it; otherwise ask what they want next. Suggest focused
   improvements before adding pages or replacing systems.
@@ -46,9 +52,10 @@ Local-only skill/editor files and old notes were deliberately left out of the re
 Do not stage everything blindly. In particular, preserve `.codex/`, installed local Neon
 skills, `skills-lock.json` edits, and root review notes unless their inclusion is requested.
 
-## Subsequent verified source changes
+## Performance release changes
 
-These changes follow the deployed navigation release and have not been deployed:
+These changes followed the navigation release and are now deployed in API version 4
+and the current frontend:
 
 - Removed unreachable helpers/components and unused/overwritten CSS. Consolidated
   auth/workspace HTTP transport, preserving errors, credentials and 401 behavior.
@@ -72,8 +79,23 @@ See `design/verification/CODE_CLEANUP.md`, `WORKSPACE_PERFORMANCE.md`, and
 `design/verification/`. Browser scripts share `design/verification/browser.mjs`;
 `check_workspace_performance.mjs` records local fixture request/rendering measurements.
 
-For the next authorized deployment, publish the backward-compatible backend endpoint
-before the frontend that calls it. No database migration is required for these changes.
+The release published the backward-compatible backend endpoint before its frontend.
+No new schema migration was required; the existing guarded upgrade path was retained.
+
+## Frontend loading changes after the release
+
+The subsequent frontend loading pass is source work, not a production deployment.
+See `design/verification/FRONTEND_LOADING.md` for measurements and verification.
+Public screens load on demand alongside session restoration; existing auth gating
+and retry remain intact. The four application fonts use WOFF2 with their complete
+character coverage retained, including Vietnamese. Original TTFs remain under
+`design/fonts` for archived previews. No runtime dependency was added.
+
+The local throttled Home measurement improved about 19%; public pages have an extra
+chunk request and their single local timing samples are not a speed guarantee.
+Lint/tests/build, 96 visual states, final public-page comparisons and mocked auth
+expiry/error/retry checks passed. Inspect git history and the live release record:
+repository HEAD can include changes newer than deployed source `625bcd2`.
 
 ## Product and workflow
 

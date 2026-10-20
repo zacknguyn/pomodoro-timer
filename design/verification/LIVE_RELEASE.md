@@ -56,3 +56,43 @@ verification for this release; automated checks did not access their account.
 Local evidence: `/tmp/pomogit-public-release/` and
 `/tmp/pomogit-floating-navigation-live-fixtures/`. Backups and rollback metadata
 remain under ignored `deploy/aws/.artifacts/` and are not committed.
+
+## Performance and dashboard release — 2026-10-20
+
+Published source `625bcd2f7c72d6200f4af4c19da73f43154ce432` to
+`https://pomogit.live` after GitHub CI succeeded. Deployment preflight verified
+AWS account 730335441285/us-east-1 and both certificate-verified Neon connections
+with the existing database role boundaries.
+
+The guarded workflow saved a private database dump and rollback snapshot, ran the
+supported upgrade path, published API version **4** and switched its `live` alias
+before uploading the frontend. CloudFront invalidation completed. No Terraform
+apply, infrastructure provisioning, credential changes or database initialization
+was performed. The previous API version **3** and frontend remain available for
+code rollback; database data is not automatically rolled back.
+
+Packaging passed frontend lint, 35 unit tests, production build, backend syntax
+and 10 backend tests; eight database-dependent tests were skipped in packaging.
+Those eight had separately passed against disposable PostgreSQL 17.11 before
+release; see [database verification](DASHBOARD_DATABASE_VERIFICATION.md).
+
+Post-publication evidence:
+
+- API version 4's code hash matches the packaged zip, and public HTML matches the
+  production frontend build.
+- `/ready` returns 200; anonymous `/api/auth/me` and `/api/sessions` return 401.
+- Fresh strict-HTTPS browsers at 1440px/390px render public landing/login without
+  JavaScript errors or horizontal overflow. The real GitHub authorization handoff
+  uses the production callback and a state; provider navigation was intercepted
+  before accessing an account.
+- Backup is nonempty with mode 0600; the previous frontend snapshot exists.
+- The deployed dashboard passed 217 assertions at desktop/phone widths across
+  both themes and navigation modes, with all account API requests intercepted.
+  These isolate UI behavior and do not read or alter real account data.
+- The user confirmed GitHub login returns Home and existing Board tasks and
+  recorded dashboard history look correct. This is user-reported live account
+  verification, distinct from the isolated automated browser checks.
+
+Local evidence: `/tmp/pomogit-release-provenance.json`,
+`/tmp/pomogit-public-release/`, and `/tmp/pomogit-dashboard-integration/`.
+Private backup and rollback files remain under ignored deployment artifacts.
