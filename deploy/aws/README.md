@@ -168,3 +168,12 @@ A pause or resume plan may include other pending Terraform changes, so review th
 entire plan before applying. Never apply an older saved plan after preparing a new
 mode. These commands require the same private config and local state used to
 create the deployment. They do not run migrations or rewrite the frontend build.
+
+
+## Permanent teardown
+
+Use [the retirement runbook](RETIREMENT.md) when the deployment is no longer
+needed. It covers verified backups, a reviewed Terraform destroy plan, the
+versioned frontend bucket, DNS/domain decisions, Neon and GitHub OAuth cleanup,
+and residual-cost checks. Pause/resume above is the reversible option.
+Neither reading these instructions nor generating a plan deletes resources.

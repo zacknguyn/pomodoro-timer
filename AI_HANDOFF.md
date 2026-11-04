@@ -237,6 +237,12 @@ Read `deploy/aws/README.md` before deployment. Root commands:
   application separately. Pausing blocks the website/public API while keeping data;
   it reduces usage charges but does not make the account free.
 
+Permanent retirement is documented in `deploy/aws/RETIREMENT.md`; pause/resume
+steps are in `deploy/aws/README.md#pause-for-a-week-and-resume`. Teardown requires
+separate explicit authorization for AWS resources, database deletion and external
+account/domain cleanup. A request to document these procedures is not permission
+to execute them. Preserve verified backups and state until cleanup is confirmed.
+
 AWS login can expire even for this IAM-user setup. The last recovery was
 `aws login --profile pomogit`, completed by the user. Never disable the account/region
 guards or ask the user to paste keys. Do not repoint the production GitHub OAuth App

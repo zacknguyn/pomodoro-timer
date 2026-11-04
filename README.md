@@ -149,7 +149,7 @@ Optional `POMOGIT_CHROMIUM` selects an existing Chromium binary. The audit uses 
 
 For provider-neutral hosting preparation, production configuration checks, database backup/restore, and manual rollback, see the [deployment runbook](./deploy/README.md). The examples keep the frontend and API on one HTTPS origin. No deployment or DNS change is performed by these files.
 
-The approved showcase setup uses **Route 53, CloudFront, private S3, API Gateway and Lambda**, with **Neon PostgreSQL** to avoid RDS/NAT fixed costs. The target is under US$10/month at low portfolio traffic, excluding the domain; usage and provider limits still matter. See the [AWS setup, push and rollback guide](./deploy/aws/README.md).
+The approved showcase setup uses **Route 53, CloudFront, private S3, API Gateway and Lambda**, with **Neon PostgreSQL** to avoid RDS/NAT fixed costs. The target is under US$10/month at low portfolio traffic, excluding the domain; usage and provider limits still matter. See the [AWS setup, push and rollback guide](./deploy/aws/README.md), [temporary pause/resume instructions](./deploy/aws/README.md#pause-for-a-week-and-resume), and [permanent teardown runbook](./deploy/aws/RETIREMENT.md).
 
 The configuration in [`terraform/`](./terraform) includes:
 

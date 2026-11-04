@@ -113,8 +113,8 @@ export const mockWorkspace = {
     return delay([...state.tasks])
   },
 
-  async createTask({ title, status = 'inbox', order = 0, referenceUrl = '', project = '', nextStep = '' }) {
-    const task = { id: nextId('mock-task'), title: String(title).trim(), status, order, referenceUrl, project, nextStep, notes: [], createdAt: new Date().toISOString() }
+  async createTask({ title, status = 'inbox', order = 0, referenceUrl = '', project = '', nextStep = '', notes = [] }) {
+    const task = { id: nextId('mock-task'), title: String(title).trim(), status, order, referenceUrl, project, nextStep, notes: [...notes], createdAt: new Date().toISOString() }
     state.tasks.push(task)
     persist(state)
     return delay({ ...task })
